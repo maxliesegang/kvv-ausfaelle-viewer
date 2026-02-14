@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { LineFile } from "../hooks/useKVVData";
 
 interface LinesSelectorProps {
@@ -6,21 +7,28 @@ interface LinesSelectorProps {
   onSelectionChange: (files: string[]) => void;
 }
 
-export function LinesSelector({ lineFiles, selectedFiles, onSelectionChange }: LinesSelectorProps) {
+export function LinesSelector({
+  lineFiles,
+  selectedFiles,
+  onSelectionChange,
+}: LinesSelectorProps) {
+  const selectedSet = useMemo(() => new Set(selectedFiles), [selectedFiles]);
+
   const handleSelectAll = () => {
-    onSelectionChange(lineFiles.map((f) => f.file));
+    onSelectionChange(lineFiles.map((lineFile) => lineFile.file));
   };
 
   const handleClearAll = () => {
     onSelectionChange([]);
   };
 
-  const handleToggleLine = (file: string, isActive: boolean) => {
-    onSelectionChange(
-      isActive
-        ? selectedFiles.filter((f) => f !== file)
-        : [...selectedFiles, file]
-    );
+  const handleToggleLine = (file: string) => {
+    if (selectedSet.has(file)) {
+      onSelectionChange(selectedFiles.filter((selectedFile) => selectedFile !== file));
+      return;
+    }
+
+    onSelectionChange([...selectedFiles, file]);
   };
 
   return (
@@ -32,6 +40,7 @@ export function LinesSelector({ lineFiles, selectedFiles, onSelectionChange }: L
             type="button"
             className="select-btn"
             onClick={handleSelectAll}
+            disabled={selectedFiles.length === lineFiles.length}
           >
             All
           </button>
@@ -39,22 +48,24 @@ export function LinesSelector({ lineFiles, selectedFiles, onSelectionChange }: L
             type="button"
             className="select-btn"
             onClick={handleClearAll}
+            disabled={selectedFiles.length === 0}
           >
             None
           </button>
         </div>
       </div>
       <div className="chips">
-        {lineFiles.map((lf) => {
-          const active = selectedFiles.includes(lf.file);
+        {lineFiles.map((lineFile) => {
+          const active = selectedSet.has(lineFile.file);
+
           return (
             <button
-              key={lf.file}
+              key={lineFile.file}
               type="button"
               className={`chip ${active ? "chip-active" : ""}`}
-              onClick={() => handleToggleLine(lf.file, active)}
+              onClick={() => handleToggleLine(lineFile.file)}
             >
-              {lf.label}
+              {lineFile.label}
             </button>
           );
         })}

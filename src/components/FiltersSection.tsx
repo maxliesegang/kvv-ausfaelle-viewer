@@ -1,15 +1,24 @@
 import { useState } from "react";
-import { getDatePresets } from "../utils/dateUtils";
+import type { TimeOfDayFilter } from "../types";
+import {
+  getDatePresets,
+  isTimeOfDayFilter,
+  TIME_OF_DAY_OPTIONS,
+} from "../utils/dateUtils";
+import {
+  getActiveFilterCount,
+  type CancellationFilters,
+} from "../utils/filtering";
 
 interface FiltersSectionProps {
   textFilter: string;
   dateFrom: string;
   dateTo: string;
-  timeOfDay: string;
+  timeOfDay: TimeOfDayFilter;
   onTextFilterChange: (value: string) => void;
   onDateFromChange: (value: string) => void;
   onDateToChange: (value: string) => void;
-  onTimeOfDayChange: (value: string) => void;
+  onTimeOfDayChange: (value: TimeOfDayFilter) => void;
   onClearFilters: () => void;
 }
 
@@ -25,8 +34,15 @@ export function FiltersSection({
   onClearFilters,
 }: FiltersSectionProps) {
   const [showFilters, setShowFilters] = useState(false);
-  const hasActiveFilters = textFilter || dateFrom || dateTo || timeOfDay !== "all";
-  const activeFilterCount = [textFilter, dateFrom, dateTo, timeOfDay !== "all"].filter(Boolean).length;
+
+  const filters: CancellationFilters = {
+    text: textFilter,
+    dateFrom,
+    dateTo,
+    timeOfDay,
+  };
+  const activeFilterCount = getActiveFilterCount(filters);
+  const filtersActive = activeFilterCount > 0;
 
   const applyDatePreset = (presetKey: keyof ReturnType<typeof getDatePresets>) => {
     const preset = getDatePresets()[presetKey];
@@ -39,58 +55,66 @@ export function FiltersSection({
       <button
         type="button"
         className="filters-toggle"
-        onClick={() => setShowFilters(!showFilters)}
+        aria-expanded={showFilters}
+        aria-controls="filter-panel"
+        onClick={() => setShowFilters((current) => !current)}
       >
         <span>Filters</span>
-        {hasActiveFilters && (
-          <span className="filter-badge">{activeFilterCount}</span>
-        )}
+        {filtersActive && <span className="filter-badge">{activeFilterCount}</span>}
         <span className="toggle-icon">{showFilters ? "▼" : "▶"}</span>
       </button>
 
       {showFilters && (
-        <div className="filters-content">
+        <div id="filter-panel" className="filters-content">
           <div className="filter-grid">
-            <label>
+            <label htmlFor="search-filter">
               Search
               <input
+                id="search-filter"
                 type="text"
                 value={textFilter}
-                onChange={(e) => onTextFilterChange(e.target.value)}
+                onChange={(event) => onTextFilterChange(event.target.value)}
                 placeholder="Line, train, or stop name..."
               />
             </label>
 
-            <label>
+            <label htmlFor="date-from-filter">
               Date from
               <input
+                id="date-from-filter"
                 type="date"
                 value={dateFrom}
-                onChange={(e) => onDateFromChange(e.target.value)}
+                onChange={(event) => onDateFromChange(event.target.value)}
               />
             </label>
 
-            <label>
+            <label htmlFor="date-to-filter">
               Date to
               <input
+                id="date-to-filter"
                 type="date"
                 value={dateTo}
-                onChange={(e) => onDateToChange(e.target.value)}
+                onChange={(event) => onDateToChange(event.target.value)}
               />
             </label>
 
-            <label>
+            <label htmlFor="time-of-day-filter">
               Time of day
               <select
+                id="time-of-day-filter"
                 value={timeOfDay}
-                onChange={(e) => onTimeOfDayChange(e.target.value)}
+                onChange={(event) => {
+                  const selectedValue = event.target.value;
+                  if (isTimeOfDayFilter(selectedValue)) {
+                    onTimeOfDayChange(selectedValue);
+                  }
+                }}
               >
-                <option value="all">All times</option>
-                <option value="morning">Morning (05–09)</option>
-                <option value="late-morning">Late morning (09–12)</option>
-                <option value="afternoon">Afternoon (12–17)</option>
-                <option value="evening">Evening (17–20)</option>
-                <option value="night">Night (20–05)</option>
+                {TIME_OF_DAY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
@@ -130,7 +154,7 @@ export function FiltersSection({
             </button>
           </div>
 
-          {hasActiveFilters && (
+          {filtersActive && (
             <button
               type="button"
               className="clear-filters-btn"

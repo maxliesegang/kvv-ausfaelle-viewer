@@ -104,6 +104,17 @@
   transform: scale(0.98);
 }
 
+.select-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.select-btn:disabled:hover {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
 /* Filters Section */
 .filters-section {
   border-top: 1px solid var(--color-border);
@@ -802,8 +813,6 @@ tbody tr:last-child td {
     min-height: 44px; /* iOS recommendation for tap targets */
   }
 
-  .control-group input,
-  .control-group select,
   .filter-grid input,
   .filter-grid select {
     min-height: 44px;

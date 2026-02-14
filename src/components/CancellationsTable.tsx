@@ -5,6 +5,17 @@ interface CancellationsTableProps {
   loading: boolean;
 }
 
+function getCancellationRowKey(item: Cancellation): string {
+  return [
+    item.date,
+    item.line,
+    item.trainNumber,
+    item.fromStop,
+    item.toStop,
+    item.sourceUrl,
+  ].join("|");
+}
+
 export function CancellationsTable({ data, loading }: CancellationsTableProps) {
   return (
     <section className="table-section">
@@ -22,8 +33,8 @@ export function CancellationsTable({ data, loading }: CancellationsTableProps) {
             </tr>
           </thead>
           <tbody>
-            {data.map((item, idx) => (
-              <tr key={`${item.trainNumber}-${item.date}-${idx}`}>
+            {data.map((item) => (
+              <tr key={getCancellationRowKey(item)}>
                 <td>{item.date}</td>
                 <td>{item.line}</td>
                 <td>{item.trainNumber}</td>
@@ -36,11 +47,7 @@ export function CancellationsTable({ data, loading }: CancellationsTableProps) {
                   <div className="time">{item.toTime}</div>
                 </td>
                 <td>
-                  <a
-                    href={item.sourceUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
+                  <a href={item.sourceUrl} target="_blank" rel="noreferrer">
                     KVV detail
                   </a>
                 </td>

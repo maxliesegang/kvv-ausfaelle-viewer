@@ -1,24 +1,21 @@
-import { useState, useMemo } from "react";
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-} from "recharts";
-import { useKVVData } from "./hooks/useKVVData";
-import { groupByDate, groupByLine, groupByTimeOfDay } from "./utils/dataTransforms";
-import { getTimeOfDayCategory } from "./utils/dateUtils";
-import { Header } from "./components/Header";
-import { YearSelector } from "./components/YearSelector";
-import { LinesSelector } from "./components/LinesSelector";
-import { FiltersSection } from "./components/FiltersSection";
-import { ResultsSummary } from "./components/ResultsSummary";
+import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import { ChartCard } from "./components/ChartCard";
 import { CancellationsTable } from "./components/CancellationsTable";
+import { FiltersSection } from "./components/FiltersSection";
+import { Header } from "./components/Header";
+import { LinesSelector } from "./components/LinesSelector";
+import { ResultsSummary } from "./components/ResultsSummary";
+import { YearSelector } from "./components/YearSelector";
+import { useKVVData } from "./hooks/useKVVData";
+import {
+  buildCancellationsView,
+  DEFAULT_CANCELLATION_FILTERS,
+  indexCancellations,
+  type CancellationFilters,
+} from "./utils/filtering";
 import "./App.css";
+
+const CancellationCharts = lazy(() => import("./components/CancellationCharts"));
 
 function App() {
   const {
@@ -33,51 +30,36 @@ function App() {
     rawData,
   } = useKVVData();
 
-  const [textFilter, setTextFilter] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [timeOfDay, setTimeOfDay] = useState<string>("all");
+  const [filters, setFilters] = useState<CancellationFilters>({
+    ...DEFAULT_CANCELLATION_FILTERS,
+  });
 
-  const hasActiveFilters = !!(textFilter || dateFrom || dateTo || timeOfDay !== "all");
+  const indexedData = useMemo(() => indexCancellations(rawData), [rawData]);
 
-  const filtered = useMemo(() => {
-    return rawData.filter((item) => {
-      if (dateFrom && item.date < dateFrom) return false;
-      if (dateTo && item.date > dateTo) return false;
+  const cancellationsView = useMemo(
+    () => buildCancellationsView(indexedData, filters),
+    [filters, indexedData]
+  );
 
-      if (textFilter.trim()) {
-        const t = textFilter.toLowerCase();
-        const haystack = [
-          item.line,
-          item.trainNumber,
-          item.fromStop,
-          item.toStop,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        if (!haystack.includes(t)) return false;
-      }
+  const handleTextFilterChange = useCallback((text: string) => {
+    setFilters((currentFilters) => ({ ...currentFilters, text }));
+  }, []);
 
-      if (timeOfDay !== "all") {
-        const category = getTimeOfDayCategory(item.fromTime);
-        if (category !== timeOfDay) return false;
-      }
+  const handleDateFromChange = useCallback((dateFrom: string) => {
+    setFilters((currentFilters) => ({ ...currentFilters, dateFrom }));
+  }, []);
 
-      return true;
-    });
-  }, [rawData, textFilter, dateFrom, dateTo, timeOfDay]);
+  const handleDateToChange = useCallback((dateTo: string) => {
+    setFilters((currentFilters) => ({ ...currentFilters, dateTo }));
+  }, []);
 
-  const dailyStats = useMemo(() => groupByDate(filtered), [filtered]);
-  const lineStats = useMemo(() => groupByLine(filtered), [filtered]);
-  const timeOfDayStats = useMemo(() => groupByTimeOfDay(filtered), [filtered]);
+  const handleTimeOfDayChange = useCallback((timeOfDay: CancellationFilters["timeOfDay"]) => {
+    setFilters((currentFilters) => ({ ...currentFilters, timeOfDay }));
+  }, []);
 
-  const handleClearFilters = () => {
-    setTextFilter("");
-    setDateFrom("");
-    setDateTo("");
-    setTimeOfDay("all");
-  };
+  const handleClearFilters = useCallback(() => {
+    setFilters({ ...DEFAULT_CANCELLATION_FILTERS });
+  }, []);
 
   return (
     <div className="app">
@@ -98,14 +80,14 @@ function App() {
         </div>
 
         <FiltersSection
-          textFilter={textFilter}
-          dateFrom={dateFrom}
-          dateTo={dateTo}
-          timeOfDay={timeOfDay}
-          onTextFilterChange={setTextFilter}
-          onDateFromChange={setDateFrom}
-          onDateToChange={setDateTo}
-          onTimeOfDayChange={setTimeOfDay}
+          textFilter={filters.text}
+          dateFrom={filters.dateFrom}
+          dateTo={filters.dateTo}
+          timeOfDay={filters.timeOfDay}
+          onTextFilterChange={handleTextFilterChange}
+          onDateFromChange={handleDateFromChange}
+          onDateToChange={handleDateToChange}
+          onTimeOfDayChange={handleTimeOfDayChange}
           onClearFilters={handleClearFilters}
         />
       </section>
@@ -115,60 +97,29 @@ function App() {
 
       {!loading && !error && (
         <ResultsSummary
-          count={filtered.length}
+          count={cancellationsView.filtered.length}
           selectedLinesCount={selectedFiles.length}
-          hasActiveFilters={hasActiveFilters}
+          hasActiveFilters={cancellationsView.hasActiveFilters}
         />
       )}
 
-      <section className="charts-grid">
-        <ChartCard
-          title="Cancellations per day"
-          description="Timeline of cancellations"
+      {!error && (
+        <Suspense
+          fallback={
+            <ChartCard title="Loading charts" description="Preparing visualizations">
+              <div className="loading">Loading chart module…</div>
+            </ChartCard>
+          }
         >
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={dailyStats}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" fill="#3b82f6" />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
+          <CancellationCharts
+            dailyStats={cancellationsView.dailyStats}
+            lineStats={cancellationsView.lineStats}
+            timeOfDayStats={cancellationsView.timeOfDayStats}
+          />
+        </Suspense>
+      )}
 
-        <ChartCard
-          title="Cancellations by line"
-          description="Which lines are most affected"
-        >
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={lineStats} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis dataKey="line" type="category" width={60} />
-              <Tooltip />
-              <Bar dataKey="count" fill="#10b981" />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard
-          title="Cancellations by time of day"
-          description="When do cancellations occur"
-        >
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={timeOfDayStats}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="period" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" fill="#f59e0b" />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      </section>
-
-      <CancellationsTable data={filtered} loading={loading} />
+      <CancellationsTable data={cancellationsView.filtered} loading={loading} />
 
       <footer className="footer">
         Data from{" "}
