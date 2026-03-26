@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchLineData, fetchRootIndex, fetchYearIndex } from "../api";
 import type { Cancellation } from "../types";
 import { fileToLabel } from "../utils/dataTransforms";
@@ -61,10 +61,7 @@ export function useKVVData() {
   const lineDataCacheRef = useRef<Map<string, Cancellation[]>>(new Map());
   const dataRequestIdRef = useRef(0);
 
-  const loading = useMemo(
-    () => rootLoading || yearLoading || dataLoading,
-    [dataLoading, rootLoading, yearLoading]
-  );
+  const loading = rootLoading || yearLoading || dataLoading;
 
   const setSelectedFiles = useCallback((files: string[]) => {
     setSelectedFilesState(normalizeSelectedFiles(files));

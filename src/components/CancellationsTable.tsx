@@ -1,35 +1,73 @@
 import type { Cancellation } from "../types";
+import { exportCancellationsCsv } from "../utils/csvExport";
 
 interface CancellationsTableProps {
   data: Cancellation[];
   loading: boolean;
+  selectedLinesCount: number;
+  hasActiveFilters: boolean;
+  selectedYear: string | null;
 }
 
-function getCancellationRowKey(item: Cancellation): string {
-  return [
-    item.date,
-    item.line,
-    item.trainNumber,
-    item.fromStop,
-    item.toStop,
-    item.sourceUrl,
-  ].join("|");
+function buildFilename(selectedYear: string | null, hasActiveFilters: boolean): string {
+  const year = selectedYear ? `-${selectedYear}` : "";
+  const suffix = hasActiveFilters ? "-gefiltert" : "";
+  return `kvv-ausfaelle${year}${suffix}.csv`;
 }
 
-export function CancellationsTable({ data, loading }: CancellationsTableProps) {
+export function CancellationsTable({
+  data,
+  loading,
+  selectedLinesCount,
+  hasActiveFilters,
+  selectedYear,
+}: CancellationsTableProps) {
+  const handleExport = () => {
+    exportCancellationsCsv(data, buildFilename(selectedYear, hasActiveFilters));
+  };
+
   return (
     <section className="table-section">
-      <h2>Details</h2>
+      <div className="table-toolbar">
+        <div className="table-toolbar-info">
+          {!loading && (
+            <>
+              <span className="table-count">
+                {data.length.toLocaleString("de-DE")}
+              </span>
+              <span className="table-meta">
+                Ausfall{data.length !== 1 ? "fälle" : ""} von{" "}
+                {selectedLinesCount} Linie{selectedLinesCount !== 1 ? "n" : ""}
+                {hasActiveFilters && " · gefiltert"}
+              </span>
+            </>
+          )}
+        </div>
+        <button
+          type="button"
+          className="export-btn"
+          onClick={handleExport}
+          disabled={loading || data.length === 0}
+          title={
+            data.length === 0
+              ? "Keine Daten zum Exportieren"
+              : `${data.length.toLocaleString("de-DE")} Zeilen als CSV exportieren`
+          }
+        >
+          CSV exportieren
+        </button>
+      </div>
+
       <div className="table-wrapper">
         <table>
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Line</th>
-              <th>Train</th>
-              <th>From</th>
-              <th>To</th>
-              <th>Source</th>
+              <th>Datum</th>
+              <th>Linie</th>
+              <th>Zug</th>
+              <th>Von</th>
+              <th>Nach</th>
+              <th>Quelle</th>
             </tr>
           </thead>
           <tbody>
@@ -48,7 +86,7 @@ export function CancellationsTable({ data, loading }: CancellationsTableProps) {
                 </td>
                 <td>
                   <a href={item.sourceUrl} target="_blank" rel="noreferrer">
-                    KVV detail
+                    KVV
                   </a>
                 </td>
               </tr>
@@ -56,7 +94,7 @@ export function CancellationsTable({ data, loading }: CancellationsTableProps) {
             {data.length === 0 && !loading && (
               <tr>
                 <td colSpan={6} className="empty">
-                  No data for current filters.
+                  Keine Einträge für die aktuellen Filter.
                 </td>
               </tr>
             )}
@@ -65,4 +103,15 @@ export function CancellationsTable({ data, loading }: CancellationsTableProps) {
       </div>
     </section>
   );
+}
+
+function getCancellationRowKey(item: Cancellation): string {
+  return [
+    item.date,
+    item.line,
+    item.trainNumber,
+    item.fromStop,
+    item.toStop,
+    item.sourceUrl,
+  ].join("|");
 }

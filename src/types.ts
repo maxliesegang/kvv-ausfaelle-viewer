@@ -32,6 +32,11 @@ export interface TimeOfDayStats {
   count: number;
 }
 
+export interface DayOfWeekStats {
+  day: string;
+  count: number;
+}
+
 export type TimeOfDayCategory =
   | "morning"
   | "late-morning"
@@ -41,3 +46,15 @@ export type TimeOfDayCategory =
   | "unknown";
 
 export type TimeOfDayFilter = TimeOfDayCategory | "all";
+
+export type DayOfWeek =
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday"
+  | "sunday";
+
+/** "weekday" and "weekend" are synthetic groupings; individual days are exact matches. */
+export type DayOfWeekFilter = "all" | "weekday" | "weekend" | DayOfWeek;

@@ -15,7 +15,7 @@ export function LinesSelector({
   const selectedSet = useMemo(() => new Set(selectedFiles), [selectedFiles]);
 
   const handleSelectAll = () => {
-    onSelectionChange(lineFiles.map((lineFile) => lineFile.file));
+    onSelectionChange(lineFiles.map((lf) => lf.file));
   };
 
   const handleClearAll = () => {
@@ -24,17 +24,16 @@ export function LinesSelector({
 
   const handleToggleLine = (file: string) => {
     if (selectedSet.has(file)) {
-      onSelectionChange(selectedFiles.filter((selectedFile) => selectedFile !== file));
+      onSelectionChange(selectedFiles.filter((f) => f !== file));
       return;
     }
-
     onSelectionChange([...selectedFiles, file]);
   };
 
   return (
     <div className="lines-selector">
       <div className="lines-header">
-        <label>Lines</label>
+        <span className="control-label">Linien</span>
         <div className="line-controls">
           <button
             type="button"
@@ -42,7 +41,7 @@ export function LinesSelector({
             onClick={handleSelectAll}
             disabled={selectedFiles.length === lineFiles.length}
           >
-            All
+            Alle
           </button>
           <button
             type="button"
@@ -50,25 +49,21 @@ export function LinesSelector({
             onClick={handleClearAll}
             disabled={selectedFiles.length === 0}
           >
-            None
+            Keine
           </button>
         </div>
       </div>
       <div className="chips">
-        {lineFiles.map((lineFile) => {
-          const active = selectedSet.has(lineFile.file);
-
-          return (
-            <button
-              key={lineFile.file}
-              type="button"
-              className={`chip ${active ? "chip-active" : ""}`}
-              onClick={() => handleToggleLine(lineFile.file)}
-            >
-              {lineFile.label}
-            </button>
-          );
-        })}
+        {lineFiles.map((lf) => (
+          <button
+            key={lf.file}
+            type="button"
+            className={`chip ${selectedSet.has(lf.file) ? "chip-active" : ""}`}
+            onClick={() => handleToggleLine(lf.file)}
+          >
+            {lf.label}
+          </button>
+        ))}
       </div>
     </div>
   );

@@ -7,13 +7,13 @@ interface YearSelectorProps {
 export function YearSelector({ years, selectedYear, onYearChange }: YearSelectorProps) {
   return (
     <div className="year-selector">
-      <label htmlFor="year-select">Year</label>
+      <span className="control-label">Jahr</span>
       <select
         id="year-select"
         value={selectedYear ?? ""}
         onChange={(e) => onYearChange(e.target.value || null)}
       >
-        <option value="">– Select –</option>
+        <option value="">– Auswählen –</option>
         {years.map((y) => (
           <option key={y} value={y}>
             {y}

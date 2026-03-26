@@ -2,9 +2,7 @@ import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import { ChartCard } from "./components/ChartCard";
 import { CancellationsTable } from "./components/CancellationsTable";
 import { FiltersSection } from "./components/FiltersSection";
-import { Header } from "./components/Header";
 import { LinesSelector } from "./components/LinesSelector";
-import { ResultsSummary } from "./components/ResultsSummary";
 import { YearSelector } from "./components/YearSelector";
 import { useKVVData } from "./hooks/useKVVData";
 import {
@@ -30,108 +28,108 @@ function App() {
     rawData,
   } = useKVVData();
 
-  const [filters, setFilters] = useState<CancellationFilters>({
-    ...DEFAULT_CANCELLATION_FILTERS,
-  });
+  const [filters, setFilters] = useState<CancellationFilters>(DEFAULT_CANCELLATION_FILTERS);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const indexedData = useMemo(() => indexCancellations(rawData), [rawData]);
-
   const cancellationsView = useMemo(
     () => buildCancellationsView(indexedData, filters),
     [filters, indexedData]
   );
 
-  const handleTextFilterChange = useCallback((text: string) => {
-    setFilters((currentFilters) => ({ ...currentFilters, text }));
-  }, []);
-
-  const handleDateFromChange = useCallback((dateFrom: string) => {
-    setFilters((currentFilters) => ({ ...currentFilters, dateFrom }));
-  }, []);
-
-  const handleDateToChange = useCallback((dateTo: string) => {
-    setFilters((currentFilters) => ({ ...currentFilters, dateTo }));
-  }, []);
-
-  const handleTimeOfDayChange = useCallback((timeOfDay: CancellationFilters["timeOfDay"]) => {
-    setFilters((currentFilters) => ({ ...currentFilters, timeOfDay }));
+  const handleFiltersChange = useCallback((patch: Partial<CancellationFilters>) => {
+    setFilters((f) => ({ ...f, ...patch }));
   }, []);
 
   const handleClearFilters = useCallback(() => {
-    setFilters({ ...DEFAULT_CANCELLATION_FILTERS });
+    setFilters(DEFAULT_CANCELLATION_FILTERS);
   }, []);
 
   return (
     <div className="app">
-      <Header />
-
-      <section className="controls">
-        <div className="primary-controls">
-          <YearSelector
-            years={years}
-            selectedYear={selectedYear}
-            onYearChange={setSelectedYear}
-          />
-          <LinesSelector
-            lineFiles={lineFiles}
-            selectedFiles={selectedFiles}
-            onSelectionChange={setSelectedFiles}
-          />
+      <aside className={`sidebar${sidebarOpen ? " sidebar--open" : ""}`}>
+        <div className="sidebar-header">
+          <div className="sidebar-brand">
+            <span className="sidebar-brand-name">KVV Ausfälle</span>
+            <span className="sidebar-brand-sub">Fahrtausfälle-Browser</span>
+          </div>
+          <button
+            type="button"
+            className="mobile-toggle"
+            aria-expanded={sidebarOpen}
+            onClick={() => setSidebarOpen((o) => !o)}
+          >
+            {sidebarOpen ? "Schließen" : "Auswahl & Filter"}
+          </button>
         </div>
 
-        <FiltersSection
-          textFilter={filters.text}
-          dateFrom={filters.dateFrom}
-          dateTo={filters.dateTo}
-          timeOfDay={filters.timeOfDay}
-          onTextFilterChange={handleTextFilterChange}
-          onDateFromChange={handleDateFromChange}
-          onDateToChange={handleDateToChange}
-          onTimeOfDayChange={handleTimeOfDayChange}
-          onClearFilters={handleClearFilters}
-        />
-      </section>
+        <div className="sidebar-body">
+          <div className="sidebar-section">
+            <YearSelector
+              years={years}
+              selectedYear={selectedYear}
+              onYearChange={setSelectedYear}
+            />
+          </div>
 
-      {error && <div className="error">Error: {error}</div>}
-      {loading && <div className="loading">Loading…</div>}
+          <div className="sidebar-section">
+            <LinesSelector
+              lineFiles={lineFiles}
+              selectedFiles={selectedFiles}
+              onSelectionChange={setSelectedFiles}
+            />
+          </div>
 
-      {!loading && !error && (
-        <ResultsSummary
-          count={cancellationsView.filtered.length}
+          <div className="sidebar-section">
+            <FiltersSection
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              onClearFilters={handleClearFilters}
+            />
+          </div>
+
+          <div className="sidebar-footer">
+            Daten:{" "}
+            <a
+              href="https://maxliesegang.github.io/kvv-ausfaelle-scraper/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              kvv-ausfaelle-scraper
+            </a>
+          </div>
+        </div>
+      </aside>
+
+      <main className="main-content">
+        {error && <div className="error">Fehler: {error}</div>}
+        {loading && <div className="loading">Wird geladen…</div>}
+
+        {!error && (
+          <Suspense
+            fallback={
+              <ChartCard title="Diagramme werden geladen…">
+                <div className="loading">Wird vorbereitet…</div>
+              </ChartCard>
+            }
+          >
+            <CancellationCharts
+              dailyStats={cancellationsView.dailyStats}
+              lineStats={cancellationsView.lineStats}
+              timeOfDayStats={cancellationsView.timeOfDayStats}
+              dayOfWeekStats={cancellationsView.dayOfWeekStats}
+            />
+          </Suspense>
+        )}
+
+        <CancellationsTable
+          data={cancellationsView.filtered}
+          loading={loading}
           selectedLinesCount={selectedFiles.length}
           hasActiveFilters={cancellationsView.hasActiveFilters}
+          selectedYear={selectedYear}
         />
-      )}
-
-      {!error && (
-        <Suspense
-          fallback={
-            <ChartCard title="Loading charts" description="Preparing visualizations">
-              <div className="loading">Loading chart module…</div>
-            </ChartCard>
-          }
-        >
-          <CancellationCharts
-            dailyStats={cancellationsView.dailyStats}
-            lineStats={cancellationsView.lineStats}
-            timeOfDayStats={cancellationsView.timeOfDayStats}
-          />
-        </Suspense>
-      )}
-
-      <CancellationsTable data={cancellationsView.filtered} loading={loading} />
-
-      <footer className="footer">
-        Data from{" "}
-        <a
-          href="https://maxliesegang.github.io/kvv-ausfaelle-scraper/"
-          target="_blank"
-          rel="noreferrer"
-        >
-          kvv-ausfaelle-scraper
-        </a>
-        .
-      </footer>
+      </main>
     </div>
   );
 }
