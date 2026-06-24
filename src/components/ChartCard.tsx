@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { KernCard, KernText } from "@kern-ux-annex/kern-react-kit";
 
 interface ChartCardProps {
   title: string;
@@ -8,10 +9,13 @@ interface ChartCardProps {
 
 export function ChartCard({ title, description, children }: ChartCardProps) {
   return (
-    <div className="chart-section">
-      <h2>{title}</h2>
-      {description && <p className="chart-note">{description}</p>}
+    <KernCard title={title}>
+      {description && (
+        <KernText type="body" size="small" muted>
+          {description}
+        </KernText>
+      )}
       <div className="chart-wrapper">{children}</div>
-    </div>
+    </KernCard>
   );
 }

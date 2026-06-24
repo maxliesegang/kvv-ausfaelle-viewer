@@ -1,4 +1,5 @@
 import type { Cancellation } from "../types";
+import { CAUSE_LABELS, normalizeCause } from "./causeUtils";
 
 const CSV_HEADERS = [
   "Datum",
@@ -8,19 +9,21 @@ const CSV_HEADERS = [
   "Abfahrt Zeit",
   "Ankunft Haltestelle",
   "Ankunft Zeit",
+  "Ursache",
   "Quelle",
 ];
 
-function toCsvRow(c: Cancellation): string[] {
+function toCsvRow(cancellation: Cancellation): string[] {
   return [
-    c.date,
-    c.line,
-    c.trainNumber,
-    c.fromStop,
-    c.fromTime ?? "",
-    c.toStop,
-    c.toTime ?? "",
-    c.sourceUrl,
+    cancellation.date,
+    cancellation.line,
+    cancellation.trainNumber,
+    cancellation.fromStop,
+    cancellation.fromTime ?? "",
+    cancellation.toStop,
+    cancellation.toTime ?? "",
+    CAUSE_LABELS[normalizeCause(cancellation.cause)],
+    cancellation.sourceUrl,
   ];
 }
 

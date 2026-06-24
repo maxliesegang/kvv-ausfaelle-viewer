@@ -7,6 +7,18 @@ export function formatDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+const SHORT_MONTH_LABELS = [
+  "Jan", "Feb", "Mär", "Apr", "Mai", "Jun",
+  "Jul", "Aug", "Sep", "Okt", "Nov", "Dez",
+];
+
+/** Formats an ISO "YYYY-MM-DD" string as a compact German "5. Jan" label,
+ * shared by the chart axis ticks and the summary readout. */
+export function formatShortDate(isoDate: string): string {
+  const [, month, day] = isoDate.split("-");
+  return `${parseInt(day, 10)}. ${SHORT_MONTH_LABELS[parseInt(month, 10) - 1]}`;
+}
+
 export interface DatePreset {
   from: string;
   to: string;

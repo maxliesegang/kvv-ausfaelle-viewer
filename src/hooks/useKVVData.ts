@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchLineData, fetchRootIndex, fetchYearIndex } from "../api";
 import type { Cancellation } from "../types";
-import { fileToLabel } from "../utils/dataTransforms";
+import { lineFileToLabel } from "../utils/dataTransforms";
 
 export interface LineFile {
   file: string;
   label: string;
 }
 
-const YEAR_SORT_OPTIONS = {
+const NATURAL_SORT_OPTIONS = {
   numeric: true,
   sensitivity: "base",
 } as const;
@@ -19,7 +19,7 @@ function isAbortError(error: unknown): boolean {
 
 function normalizeSelectedFiles(files: string[]): string[] {
   return [...new Set(files)].sort((a, b) =>
-    a.localeCompare(b, undefined, YEAR_SORT_OPTIONS)
+    a.localeCompare(b, undefined, NATURAL_SORT_OPTIONS)
   );
 }
 
@@ -35,9 +35,9 @@ function toLineFiles(files: string[]): LineFile[] {
     .filter((file) => file.endsWith(".json") && file !== "index.json")
     .map((file) => ({
       file,
-      label: fileToLabel(file),
+      label: lineFileToLabel(file),
     }))
-    .sort((a, b) => a.label.localeCompare(b.label, undefined, YEAR_SORT_OPTIONS));
+    .sort((a, b) => a.label.localeCompare(b.label, undefined, NATURAL_SORT_OPTIONS));
 }
 
 function getCacheKey(year: string, file: string): string {
@@ -54,7 +54,7 @@ export function useKVVData() {
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
 
   const [lineFiles, setLineFiles] = useState<LineFile[]>([]);
-  const [selectedFilesState, setSelectedFilesState] = useState<string[]>([]);
+  const [selectedFiles, setSelectedFilesRaw] = useState<string[]>([]);
 
   const [rawData, setRawData] = useState<Cancellation[]>([]);
 
@@ -64,7 +64,7 @@ export function useKVVData() {
   const loading = rootLoading || yearLoading || dataLoading;
 
   const setSelectedFiles = useCallback((files: string[]) => {
-    setSelectedFilesState(normalizeSelectedFiles(files));
+    setSelectedFilesRaw(normalizeSelectedFiles(files));
   }, []);
 
   useEffect(() => {
@@ -79,7 +79,7 @@ export function useKVVData() {
         if (controller.signal.aborted) return;
 
         const sortedYears = [...root.years].sort((a, b) =>
-          a.localeCompare(b, undefined, YEAR_SORT_OPTIONS)
+          a.localeCompare(b, undefined, NATURAL_SORT_OPTIONS)
         );
 
         setYears(sortedYears);
@@ -105,7 +105,7 @@ export function useKVVData() {
   useEffect(() => {
     if (!selectedYear) {
       setLineFiles([]);
-      setSelectedFilesState([]);
+      setSelectedFilesRaw([]);
       setRawData([]);
       return;
     }
@@ -116,7 +116,7 @@ export function useKVVData() {
       setYearLoading(true);
       setError(null);
       setRawData([]);
-      setSelectedFilesState([]);
+      setSelectedFilesRaw([]);
 
       try {
         const yearIndex = await fetchYearIndex(selectedYear, controller.signal);
@@ -126,7 +126,7 @@ export function useKVVData() {
         const defaultSelection = files.map((lineFile) => lineFile.file);
 
         setLineFiles(files);
-        setSelectedFilesState(defaultSelection);
+        setSelectedFilesRaw(defaultSelection);
       } catch (e) {
         if (!isAbortError(e)) {
           setError((e as Error).message);
@@ -146,7 +146,7 @@ export function useKVVData() {
   }, [selectedYear]);
 
   useEffect(() => {
-    if (!selectedYear || selectedFilesState.length === 0) {
+    if (!selectedYear || selectedFiles.length === 0) {
       setRawData([]);
       setDataLoading(false);
       return;
@@ -162,7 +162,7 @@ export function useKVVData() {
 
       try {
         const fileData = await Promise.all(
-          selectedFilesState.map(async (file) => {
+          selectedFiles.map(async (file) => {
             const cacheKey = getCacheKey(selectedYear, file);
             const cached = lineDataCacheRef.current.get(cacheKey);
             if (cached) return cached;
@@ -200,7 +200,7 @@ export function useKVVData() {
     return () => {
       controller.abort();
     };
-  }, [selectedFilesState, selectedYear]);
+  }, [selectedFiles, selectedYear]);
 
   return {
     loading,
@@ -209,7 +209,7 @@ export function useKVVData() {
     selectedYear,
     setSelectedYear,
     lineFiles,
-    selectedFiles: selectedFilesState,
+    selectedFiles,
     setSelectedFiles,
     rawData,
   };

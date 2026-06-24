@@ -7,7 +7,17 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { DailyStats, DayOfWeekStats, LineStats, TimeOfDayStats } from "../types";
+import type { DataKey } from "recharts/types/util/types";
+import type {
+  CauseStats,
+  DailyStats,
+  DayOfWeekStats,
+  LineStats,
+  TimeOfDayStats,
+} from "../types";
+import type { Theme } from "../hooks/useTheme";
+import { useChartColors } from "../hooks/useChartColors";
+import { formatShortDate } from "../utils/dateUtils";
 import { ChartCard } from "./ChartCard";
 
 interface CancellationChartsProps {
@@ -15,13 +25,65 @@ interface CancellationChartsProps {
   lineStats: LineStats[];
   timeOfDayStats: TimeOfDayStats[];
   dayOfWeekStats: DayOfWeekStats[];
+  causeStats: CauseStats[];
+  theme: Theme;
 }
 
-/** Formats "YYYY-MM-DD" as "5. Jan" for compact axis labels. */
-function formatDateTick(dateStr: string): string {
-  const [, monthStr, dayStr] = dateStr.split("-");
-  const months = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
-  return `${parseInt(dayStr, 10)}. ${months[parseInt(monthStr, 10) - 1]}`;
+const AXIS_TICK = { fontSize: 11 };
+
+interface BreakdownChartProps<T extends { count: number }> {
+  title: string;
+  description: string;
+  data: T[];
+  /** Field holding the category label (the non-value axis). */
+  categoryKey: DataKey<T>;
+  color: string;
+  /** Render as horizontal bars so longer German category labels fit. */
+  horizontal?: boolean;
+  /** Width reserved for the category axis labels when `horizontal`. */
+  categoryWidth?: number;
+}
+
+/** A single breakdown bar chart in the responsive grid. Horizontal and vertical
+ * layouts share everything but axis orientation, bar corner radii, and which
+ * grid lines show — so they live in one parameterized component. */
+function BreakdownChart<T extends { count: number }>({
+  title,
+  description,
+  data,
+  categoryKey,
+  color,
+  horizontal = false,
+  categoryWidth = 48,
+}: BreakdownChartProps<T>) {
+  const valueAxis = horizontal ? (
+    <XAxis type="number" tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
+  ) : (
+    <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
+  );
+  const categoryAxis = horizontal ? (
+    <YAxis dataKey={categoryKey} type="category" width={categoryWidth} tick={AXIS_TICK} tickLine={false} axisLine={false} />
+  ) : (
+    <XAxis dataKey={categoryKey} tick={AXIS_TICK} tickLine={false} />
+  );
+
+  return (
+    <ChartCard title={title} description={description}>
+      <ResponsiveContainer width="100%" height={260}>
+        <BarChart
+          data={data}
+          layout={horizontal ? "vertical" : "horizontal"}
+          margin={horizontal ? { top: 4, right: 12, bottom: 0, left: 0 } : { top: 4, right: 8, bottom: 0, left: -16 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" vertical={horizontal} horizontal={!horizontal} />
+          {valueAxis}
+          {categoryAxis}
+          <Tooltip cursor={{ fillOpacity: 0.08 }} />
+          <Bar dataKey="count" name="Ausfälle" fill={color} radius={horizontal ? [0, 3, 3, 0] : [3, 3, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </ChartCard>
+  );
 }
 
 export default function CancellationCharts({
@@ -29,66 +91,77 @@ export default function CancellationCharts({
   lineStats,
   timeOfDayStats,
   dayOfWeekStats,
+  causeStats,
+  theme,
 }: CancellationChartsProps) {
+  const colors = useChartColors(theme);
+  const hasData = dailyStats.length > 0;
+
+  if (!hasData) {
+    return (
+      <ChartCard
+        title="Auswertung"
+        description="Wählen Sie ein Jahr und mindestens eine Linie, um Diagramme zu sehen."
+      >
+        <div className="chart-empty">Keine Daten für die aktuelle Auswahl.</div>
+      </ChartCard>
+    );
+  }
+
   return (
     <section className="charts-section">
-      {/* Zeitverlauf — profitiert am meisten von voller Breite */}
       <ChartCard
         title="Ausfälle pro Tag"
-        description="Zeitlicher Verlauf der betriebsbedingten Fahrtausfälle"
+        description="Zeitlicher Verlauf der gemeldeten Fahrtausfälle"
       >
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={dailyStats}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" tickFormatter={formatDateTick} />
-            <YAxis />
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={dailyStats} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="date" tickFormatter={formatShortDate} tick={AXIS_TICK} tickLine={false} />
+            <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
             <Tooltip
+              cursor={{ fillOpacity: 0.08 }}
               labelFormatter={(label) =>
-                typeof label === "string" ? formatDateTick(label) : label
+                typeof label === "string" ? formatShortDate(label) : label
               }
             />
-            <Bar dataKey="count" name="Ausfälle" fill="#3b82f6" />
+            <Bar dataKey="count" name="Ausfälle" fill={colors.daily} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
 
-      {/* Analyse-Diagramme */}
       <div className="charts-row">
-        <ChartCard title="Nach Linie" description="Betroffene Linien im Vergleich">
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={lineStats} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis dataKey="line" type="category" width={55} />
-              <Tooltip />
-              <Bar dataKey="count" name="Ausfälle" fill="#10b981" />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard title="Nach Tageszeit" description="Zu welcher Uhrzeit fallen Züge aus">
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={timeOfDayStats}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="period" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" name="Ausfälle" fill="#f59e0b" />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard title="Nach Wochentag" description="An welchen Tagen fallen die meisten Züge aus">
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={dayOfWeekStats}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="day" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" name="Ausfälle" fill="#8b5cf6" />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
+        <BreakdownChart
+          title="Nach Linie"
+          description="Betroffene Linien im Vergleich"
+          data={lineStats}
+          categoryKey="line"
+          color={colors.line}
+          horizontal
+        />
+        <BreakdownChart
+          title="Nach Ursache"
+          description="Warum die Züge ausfallen (Schätzung)"
+          data={causeStats}
+          categoryKey="cause"
+          color={colors.cause}
+          horizontal
+          categoryWidth={108}
+        />
+        <BreakdownChart
+          title="Nach Tageszeit"
+          description="Zu welcher Uhrzeit fallen Züge aus"
+          data={timeOfDayStats}
+          categoryKey="period"
+          color={colors.timeOfDay}
+        />
+        <BreakdownChart
+          title="Nach Wochentag"
+          description="An welchen Tagen fallen die meisten Züge aus"
+          data={dayOfWeekStats}
+          categoryKey="day"
+          color={colors.dayOfWeek}
+        />
       </div>
     </section>
   );

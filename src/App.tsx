@@ -1,10 +1,17 @@
 import { lazy, Suspense, useCallback, useMemo, useState } from "react";
+import {
+  KernAlert,
+  KernContainer,
+  KernLink,
+  KernLoader,
+  KernText,
+} from "@kern-ux-annex/kern-react-kit";
+import { AppHeader } from "./components/AppHeader";
 import { ChartCard } from "./components/ChartCard";
 import { CancellationsTable } from "./components/CancellationsTable";
-import { FiltersSection } from "./components/FiltersSection";
-import { LinesSelector } from "./components/LinesSelector";
-import { YearSelector } from "./components/YearSelector";
+import { ControlBar } from "./components/ControlBar";
 import { useKVVData } from "./hooks/useKVVData";
+import { useTheme } from "./hooks/useTheme";
 import {
   buildCancellationsView,
   DEFAULT_CANCELLATION_FILTERS,
@@ -28,8 +35,8 @@ function App() {
     rawData,
   } = useKVVData();
 
+  const { theme, toggleTheme } = useTheme();
   const [filters, setFilters] = useState<CancellationFilters>(DEFAULT_CANCELLATION_FILTERS);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const indexedData = useMemo(() => indexCancellations(rawData), [rawData]);
   const cancellationsView = useMemo(
@@ -46,90 +53,90 @@ function App() {
   }, []);
 
   return (
-    <div className="app">
-      <aside className={`sidebar${sidebarOpen ? " sidebar--open" : ""}`}>
-        <div className="sidebar-header">
-          <div className="sidebar-brand">
-            <span className="sidebar-brand-name">KVV Ausfälle</span>
-            <span className="sidebar-brand-sub">Fahrtausfälle-Browser</span>
-          </div>
-          <button
-            type="button"
-            className="mobile-toggle"
-            aria-expanded={sidebarOpen}
-            onClick={() => setSidebarOpen((o) => !o)}
-          >
-            {sidebarOpen ? "Schließen" : "Auswahl & Filter"}
-          </button>
-        </div>
+    <div className="page">
+      <AppHeader theme={theme} onToggleTheme={toggleTheme} />
 
-        <div className="sidebar-body">
-          <div className="sidebar-section">
-            <YearSelector
-              years={years}
-              selectedYear={selectedYear}
-              onYearChange={setSelectedYear}
-            />
-          </div>
+      <main className="page__main">
+        <KernContainer>
+          {error && (
+            <div className="page__alert">
+              <KernAlert title="Daten konnten nicht geladen werden" variant="danger">
+                {error}
+              </KernAlert>
+            </div>
+          )}
 
-          <div className="sidebar-section">
-            <LinesSelector
-              lineFiles={lineFiles}
-              selectedFiles={selectedFiles}
-              onSelectionChange={setSelectedFiles}
-            />
-          </div>
+          <ControlBar
+            years={years}
+            selectedYear={selectedYear}
+            onYearChange={setSelectedYear}
+            lineFiles={lineFiles}
+            selectedFiles={selectedFiles}
+            onSelectionChange={setSelectedFiles}
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            onClearFilters={handleClearFilters}
+            loading={loading}
+            total={cancellationsView.filtered.length}
+            lineStats={cancellationsView.lineStats}
+            dailyStats={cancellationsView.dailyStats}
+          />
 
-          <div className="sidebar-section">
-            <FiltersSection
-              filters={filters}
-              onFiltersChange={handleFiltersChange}
-              onClearFilters={handleClearFilters}
-            />
-          </div>
+          <div className="canvas">
+            {loading ? (
+              <div className="canvas__loading">
+                <KernLoader />
+              </div>
+            ) : (
+              <>
+                {!error && (
+                  <Suspense
+                    fallback={
+                      <ChartCard title="Diagramme werden geladen…">
+                        <KernLoader />
+                      </ChartCard>
+                    }
+                  >
+                    <CancellationCharts
+                      dailyStats={cancellationsView.dailyStats}
+                      lineStats={cancellationsView.lineStats}
+                      timeOfDayStats={cancellationsView.timeOfDayStats}
+                      dayOfWeekStats={cancellationsView.dayOfWeekStats}
+                      causeStats={cancellationsView.causeStats}
+                      theme={theme}
+                    />
+                  </Suspense>
+                )}
 
-          <div className="sidebar-footer">
-            Daten:{" "}
-            <a
+                <CancellationsTable
+                  data={cancellationsView.filtered}
+                  loading={loading}
+                  hasActiveFilters={cancellationsView.hasActiveFilters}
+                  selectedYear={selectedYear}
+                />
+              </>
+            )}
+          </div>
+        </KernContainer>
+      </main>
+
+      <footer className="page__footer">
+        <KernContainer>
+          <div className="page__footer-inner">
+            <KernText type="body" size="small" muted component="span">
+              Datenquelle:{" "}
+            </KernText>
+            <KernLink
               href="https://maxliesegang.github.io/kvv-ausfaelle-scraper/"
               target="_blank"
               rel="noreferrer"
-            >
-              kvv-ausfaelle-scraper
-            </a>
-          </div>
-        </div>
-      </aside>
-
-      <main className="main-content">
-        {error && <div className="error">Fehler: {error}</div>}
-        {loading && <div className="loading">Wird geladen…</div>}
-
-        {!error && (
-          <Suspense
-            fallback={
-              <ChartCard title="Diagramme werden geladen…">
-                <div className="loading">Wird vorbereitet…</div>
-              </ChartCard>
-            }
-          >
-            <CancellationCharts
-              dailyStats={cancellationsView.dailyStats}
-              lineStats={cancellationsView.lineStats}
-              timeOfDayStats={cancellationsView.timeOfDayStats}
-              dayOfWeekStats={cancellationsView.dayOfWeekStats}
+              label="kvv-ausfaelle-scraper"
+              icon="open-in-new"
+              small
             />
-          </Suspense>
-        )}
-
-        <CancellationsTable
-          data={cancellationsView.filtered}
-          loading={loading}
-          selectedLinesCount={selectedFiles.length}
-          hasActiveFilters={cancellationsView.hasActiveFilters}
-          selectedYear={selectedYear}
-        />
-      </main>
+          </div>
+        </KernContainer>
+      </footer>
     </div>
   );
 }

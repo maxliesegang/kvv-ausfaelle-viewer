@@ -5,7 +5,7 @@ const DATA_BASE_URL = (
   "https://maxliesegang.github.io/kvv-ausfaelle-scraper"
 ).replace(/\/$/, "");
 
-async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
+async function fetchJson<T>(path: string, signal?: AbortSignal): Promise<T> {
   const res = await fetch(`${DATA_BASE_URL}${path}`, {
     headers: {
       Accept: "application/json",
@@ -19,14 +19,14 @@ async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
 }
 
 export async function fetchRootIndex(signal?: AbortSignal): Promise<RootIndex> {
-  return get<RootIndex>("/index.json", signal);
+  return fetchJson<RootIndex>("/index.json", signal);
 }
 
 export async function fetchYearIndex(
   year: string,
   signal?: AbortSignal
 ): Promise<YearIndex> {
-  return get<YearIndex>(`/${year}/index.json`, signal);
+  return fetchJson<YearIndex>(`/${year}/index.json`, signal);
 }
 
 export async function fetchLineData(
@@ -34,5 +34,5 @@ export async function fetchLineData(
   file: string,
   signal?: AbortSignal
 ): Promise<Cancellation[]> {
-  return get<Cancellation[]>(`/${year}/${file}`, signal);
+  return fetchJson<Cancellation[]>(`/${year}/${file}`, signal);
 }

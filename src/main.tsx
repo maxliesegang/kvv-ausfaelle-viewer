@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import "@kern-ux-annex/kern-react-kit/kern-react-kit.css";
 import App from "./App";
 import "./index.css";
 

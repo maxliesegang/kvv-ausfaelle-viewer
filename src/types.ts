@@ -6,6 +6,19 @@ export interface YearIndex {
   files: string[];
 }
 
+/** Best-effort category for why a trip was cancelled, mirroring the scraper's
+ * `CancellationCause`. Older records predate this field — treat a missing value
+ * as `unknown` (see `normalizeCause` in `utils/causeUtils.ts`). */
+export type CancellationCause =
+  | "strike"
+  | "weather"
+  | "technical"
+  | "personnel"
+  | "construction"
+  | "unknown";
+
+export type CauseFilter = CancellationCause | "all";
+
 export interface Cancellation {
   date: string;
   line: string;
@@ -15,6 +28,7 @@ export interface Cancellation {
   fromTime?: string;
   toTime?: string;
   sourceUrl: string;
+  cause?: CancellationCause;
 }
 
 export interface DailyStats {
@@ -34,6 +48,11 @@ export interface TimeOfDayStats {
 
 export interface DayOfWeekStats {
   day: string;
+  count: number;
+}
+
+export interface CauseStats {
+  cause: string;
   count: number;
 }
 

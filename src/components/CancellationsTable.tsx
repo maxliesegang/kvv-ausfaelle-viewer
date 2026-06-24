@@ -1,13 +1,70 @@
+import { useMemo } from "react";
+import {
+  KernAccordion,
+  KernAlert,
+  KernButton,
+  KernLink,
+  KernTable,
+  type KernTableColumn,
+  type KernTableRow,
+  type KernTableTransformedCellValue,
+} from "@kern-ux-annex/kern-react-kit";
 import type { Cancellation } from "../types";
+import { CAUSE_LABELS, normalizeCause } from "../utils/causeUtils";
 import { exportCancellationsCsv } from "../utils/csvExport";
 
 interface CancellationsTableProps {
   data: Cancellation[];
   loading: boolean;
-  selectedLinesCount: number;
   hasActiveFilters: boolean;
   selectedYear: string | null;
 }
+
+/** KernTable cell values must be primitives; rich cells are produced via a
+ * column `valueFormatter`. Stop + time are packed with this separator and
+ * unpacked back into a two-line cell in {@link renderStop}. */
+const STOP_TIME_SEP = "␟";
+
+function renderStop(value: KernTableTransformedCellValue) {
+  const [stop, time] = String(value).split(STOP_TIME_SEP);
+  return (
+    <span className="cell-stack">
+      <span>{stop}</span>
+      {time && <span className="cell-time">{time}</span>}
+    </span>
+  );
+}
+
+const COLUMNS: KernTableColumn[] = [
+  {
+    id: "date",
+    label: "Datum",
+    valueFormatter: (value) => <span className="cell-date">{String(value)}</span>,
+  },
+  {
+    id: "line",
+    label: "Linie",
+    valueFormatter: (value) => <span className="cell-line">{String(value)}</span>,
+  },
+  { id: "trainNumber", label: "Zug" },
+  { id: "from", label: "Von", valueFormatter: renderStop },
+  { id: "to", label: "Nach", valueFormatter: renderStop },
+  { id: "cause", label: "Ursache" },
+  {
+    id: "source",
+    label: "Quelle",
+    valueFormatter: (url) => (
+      <KernLink
+        href={String(url)}
+        target="_blank"
+        rel="noreferrer"
+        label="KVV"
+        icon="open-in-new"
+        small
+      />
+    ),
+  },
+];
 
 function buildFilename(selectedYear: string | null, hasActiveFilters: boolean): string {
   const year = selectedYear ? `-${selectedYear}` : "";
@@ -15,10 +72,13 @@ function buildFilename(selectedYear: string | null, hasActiveFilters: boolean): 
   return `kvv-ausfaelle${year}${suffix}.csv`;
 }
 
+function packStop(stop: string, time: string | undefined): string {
+  return time ? `${stop}${STOP_TIME_SEP}${time}` : stop;
+}
+
 export function CancellationsTable({
   data,
   loading,
-  selectedLinesCount,
   hasActiveFilters,
   selectedYear,
 }: CancellationsTableProps) {
@@ -26,92 +86,51 @@ export function CancellationsTable({
     exportCancellationsCsv(data, buildFilename(selectedYear, hasActiveFilters));
   };
 
-  return (
-    <section className="table-section">
+  const rows: KernTableRow[] = useMemo(
+    () =>
+      data.map((item) => ({
+        date: item.date,
+        line: item.line,
+        trainNumber: item.trainNumber,
+        from: packStop(item.fromStop, item.fromTime),
+        to: packStop(item.toStop, item.toTime),
+        cause: CAUSE_LABELS[normalizeCause(item.cause)],
+        source: item.sourceUrl,
+      })),
+    [data]
+  );
+
+  const count = data.length.toLocaleString("de-DE");
+  const title = loading
+    ? "Ausfälle im Detail"
+    : `Ausfälle im Detail (${count}${hasActiveFilters ? " · gefiltert" : ""})`;
+
+  const body = (
+    <div className="table-body">
       <div className="table-toolbar">
-        <div className="table-toolbar-info">
-          {!loading && (
-            <>
-              <span className="table-count">
-                {data.length.toLocaleString("de-DE")}
-              </span>
-              <span className="table-meta">
-                Ausfall{data.length !== 1 ? "fälle" : ""} von{" "}
-                {selectedLinesCount} Linie{selectedLinesCount !== 1 ? "n" : ""}
-                {hasActiveFilters && " · gefiltert"}
-              </span>
-            </>
-          )}
-        </div>
-        <button
-          type="button"
-          className="export-btn"
+        <KernButton
+          label="CSV exportieren"
+          variant="secondary"
+          icon="download"
+          iconPosition="left"
           onClick={handleExport}
           disabled={loading || data.length === 0}
           title={
             data.length === 0
               ? "Keine Daten zum Exportieren"
-              : `${data.length.toLocaleString("de-DE")} Zeilen als CSV exportieren`
+              : `${count} Zeilen als CSV exportieren`
           }
-        >
-          CSV exportieren
-        </button>
+        />
       </div>
-
-      <div className="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Datum</th>
-              <th>Linie</th>
-              <th>Zug</th>
-              <th>Von</th>
-              <th>Nach</th>
-              <th>Quelle</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((item) => (
-              <tr key={getCancellationRowKey(item)}>
-                <td>{item.date}</td>
-                <td>{item.line}</td>
-                <td>{item.trainNumber}</td>
-                <td>
-                  <div>{item.fromStop}</div>
-                  <div className="time">{item.fromTime}</div>
-                </td>
-                <td>
-                  <div>{item.toStop}</div>
-                  <div className="time">{item.toTime}</div>
-                </td>
-                <td>
-                  <a href={item.sourceUrl} target="_blank" rel="noreferrer">
-                    KVV
-                  </a>
-                </td>
-              </tr>
-            ))}
-            {data.length === 0 && !loading && (
-              <tr>
-                <td colSpan={6} className="empty">
-                  Keine Einträge für die aktuellen Filter.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </section>
+      {data.length === 0 && !loading ? (
+        <KernAlert title="Keine Einträge" variant="info">
+          Für die aktuellen Filter wurden keine Ausfälle gefunden.
+        </KernAlert>
+      ) : (
+        <KernTable columns={COLUMNS} rows={rows} striped responsive small />
+      )}
+    </div>
   );
-}
 
-function getCancellationRowKey(item: Cancellation): string {
-  return [
-    item.date,
-    item.line,
-    item.trainNumber,
-    item.fromStop,
-    item.toStop,
-    item.sourceUrl,
-  ].join("|");
+  return <KernAccordion variant="single" items={[{ id: "detail-table", title, body }]} />;
 }

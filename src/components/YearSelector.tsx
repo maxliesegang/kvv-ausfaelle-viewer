@@ -1,3 +1,5 @@
+import { KernSelect } from "@kern-ux-annex/kern-react-kit";
+
 interface YearSelectorProps {
   years: string[];
   selectedYear: string | null;
@@ -6,20 +8,19 @@ interface YearSelectorProps {
 
 export function YearSelector({ years, selectedYear, onYearChange }: YearSelectorProps) {
   return (
-    <div className="year-selector">
-      <span className="control-label">Jahr</span>
-      <select
-        id="year-select"
-        value={selectedYear ?? ""}
-        onChange={(e) => onYearChange(e.target.value || null)}
-      >
-        <option value="">– Auswählen –</option>
-        {years.map((y) => (
-          <option key={y} value={y}>
-            {y}
-          </option>
-        ))}
-      </select>
-    </div>
+    <KernSelect
+      id="year-select"
+      label="Jahr"
+      required
+      value={selectedYear ?? ""}
+      onChange={(e) => onYearChange(e.target.value || null)}
+    >
+      <option value="">– Auswählen –</option>
+      {years.map((year) => (
+        <option key={year} value={year}>
+          {year}
+        </option>
+      ))}
+    </KernSelect>
   );
 }
