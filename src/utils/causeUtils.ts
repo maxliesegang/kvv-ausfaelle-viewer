@@ -6,7 +6,8 @@ import type { CancellationCause, CauseFilter } from "../types";
  * of the time-of-day / day-of-week helpers in `dateUtils.ts`.
  *
  * Display/priority order matches the scraper's classifier (specific causes before
- * generic ones): strike → weather → technical → personnel → construction → unknown.
+ * generic ones): strike → weather → technical → personnel → construction →
+ * operational → unknown.
  * Extending is trivial: add the value to the scraper's enum, then here.
  */
 export const CAUSE_ORDER: ReadonlyArray<CancellationCause> = [
@@ -15,6 +16,7 @@ export const CAUSE_ORDER: ReadonlyArray<CancellationCause> = [
   "technical",
   "personnel",
   "construction",
+  "operational",
   "unknown",
 ];
 
@@ -24,6 +26,7 @@ export const CAUSE_LABELS: Record<CancellationCause, string> = {
   technical: "Technische Störung",
   personnel: "Personal",
   construction: "Bauarbeiten",
+  operational: "Betriebsbedingt",
   unknown: "Unbekannt",
 };
 

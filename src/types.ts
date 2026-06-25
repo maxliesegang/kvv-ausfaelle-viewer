@@ -15,6 +15,7 @@ export type CancellationCause =
   | "technical"
   | "personnel"
   | "construction"
+  | "operational"
   | "unknown";
 
 export type CauseFilter = CancellationCause | "all";
