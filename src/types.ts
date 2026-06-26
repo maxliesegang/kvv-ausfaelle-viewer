@@ -13,7 +13,6 @@ export type CancellationCause =
   | "strike"
   | "weather"
   | "technical"
-  | "personnel"
   | "construction"
   | "operational"
   | "unknown";
