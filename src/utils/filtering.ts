@@ -116,14 +116,25 @@ function toCauseStats(counts: Map<CancellationCause, number>): CauseStats[] {
     .filter((item) => item.count > 0);
 }
 
-/** Active date bounds (0–2) — drives the "Zeitraum" toggle badge. */
+/** Active date bounds (0–2). */
 export function getDateFilterCount(filters: CancellationFilters): number {
   return (filters.dateFrom ? 1 : 0) + (filters.dateTo ? 1 : 0);
 }
 
-/** Active non-date filters (search, cause, time-of-day, weekday) — drives the
- * "Filter" toggle badge. The date range has its own "Zeitraum" toggle, so it is
- * counted separately by {@link getDateFilterCount}. */
+/** Active filters living in the "Zeit" expander — date bounds, time-of-day and
+ * weekday — which drives that toggle's badge. The year is data scope (always
+ * set), so it doesn't count. */
+export function getZeitFilterCount(filters: CancellationFilters): number {
+  return (
+    getDateFilterCount(filters) +
+    (filters.timeOfDay !== "all" ? 1 : 0) +
+    (filters.dayOfWeek !== "all" ? 1 : 0)
+  );
+}
+
+/** Active non-date filters (search, cause, time-of-day, weekday). Time-of-day
+ * and weekday live in the "Zeit" expander but still count here toward the
+ * total. */
 export function getAdvancedFilterCount(filters: CancellationFilters): number {
   return [
     Boolean(filters.search.trim()),

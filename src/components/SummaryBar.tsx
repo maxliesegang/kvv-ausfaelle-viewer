@@ -1,4 +1,3 @@
-import { KernText } from "@kern-ux-annex/kern-react-kit";
 import type { DailyStats, LineStats } from "../types";
 import { formatShortDate } from "../utils/dateUtils";
 
@@ -14,32 +13,36 @@ function maxBy<T>(items: T[], value: (item: T) => number): T | undefined {
 }
 
 /**
- * Compact live result readout shown inline on the right of the sticky toolbar:
- * the emphasized total for the current selection plus a few muted supporting
- * stats. Kept on the toolbar line to save vertical space.
+ * Compact result readout that trails on the right of the control row: the
+ * emphasized total over a muted "·"-joined line of supporting facts. Stacked
+ * into two short lines so it stays narrow (saving horizontal space) while
+ * fitting within the row's existing height.
  */
 export function SummaryBar({ total, lineStats, dailyStats }: SummaryBarProps) {
   const peakDay = maxBy(dailyStats, (d) => d.count);
   const topLine = maxBy(lineStats, (l) => l.count);
 
-  const stats = [
-    `${lineStats.length} Linie${lineStats.length === 1 ? "" : "n"}`,
-    topLine ? `Stärkste Linie ${topLine.line}` : null,
-    peakDay ? `Stärkster Tag ${formatShortDate(peakDay.date)}` : null,
-  ].filter(Boolean) as string[];
+  const meta = [
+    `${lineStats.length} Linien`,
+    topLine ? topLine.line : null,
+    peakDay ? formatShortDate(peakDay.date) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <div className="result" aria-label="Ergebnis der Auswahl">
-      <span className="result__headline">
-        <span className="result__value">{total.toLocaleString("de-DE")}</span>
-        <KernText type="body" muted component="span" className="result__unit">
-          {total === 1 ? "Ausfall" : "Ausfälle"}
-        </KernText>
+    <div className="summary" aria-label="Ergebnis der Auswahl">
+      <span className="summary__headline">
+        <span className="summary__value">{total.toLocaleString("de-DE")}</span>
+        <span className="summary__unit">{total === 1 ? "Ausfall" : "Ausfälle"}</span>
       </span>
       {total > 0 && (
-        <KernText type="body" size="small" muted component="span" className="result__stats">
-          {stats.join(" · ")}
-        </KernText>
+        <span
+          className="summary__meta"
+          title="Linien · stärkste Linie · Spitzentag"
+        >
+          {meta}
+        </span>
       )}
     </div>
   );
