@@ -30,7 +30,7 @@ A single-page React 19 + TypeScript + Vite app that visualizes KVV train cancell
 
 4. **`src/utils/dateUtils.ts`** — defines the time-of-day buckets and day-of-week categories, their display labels, chart ordering, and the `matchesDayOfWeekFilter` logic (note `weekday`/`weekend` are synthetic groupings, individual days are exact matches — see `src/types.ts`).
 
-5. **`src/utils/causeUtils.ts`** — the cancellation **cause** ("Ursache") taxonomy: the scraper's best-effort `cause` category (`strike → weather → technical → personnel → construction → unknown`), with German labels, chart/priority ordering, filter options, and `normalizeCause` (legacy records that predate the field, or carry an unknown value, fall back to `unknown`). Mirrors the structure of `dateUtils.ts`.
+5. **`src/utils/causeUtils.ts`** — the cancellation **cause** ("Ursache") taxonomy: the scraper's best-effort `cause` category (`strike → weather → vehicle → infrastructure → technical → personnel → operational → disruption → construction → unknown`), with German labels, chart/priority ordering, filter options, and `normalizeCause` (legacy records that predate the field, or carry an unknown value, fall back to `unknown`). Mirrors the structure of `dateUtils.ts`.
 
 6. **`src/utils/dataTransforms.ts`** — small pure helpers (e.g. `lineFileToLabel`, which turns a line file name like `S1-S11.json` into a display label). **`src/utils/csvExport.ts`** — builds and triggers a client-side CSV download of the currently filtered rows (UTF-8 BOM so Excel decodes German characters, incl. the localized Ursache column), wired to the "CSV exportieren" button in `CancellationsTable.tsx`.
 

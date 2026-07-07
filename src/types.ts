@@ -12,9 +12,13 @@ export interface YearIndex {
 export type CancellationCause =
   | "strike"
   | "weather"
+  | "vehicle"
+  | "infrastructure"
   | "technical"
-  | "construction"
+  | "personnel"
   | "operational"
+  | "disruption"
+  | "construction"
   | "unknown";
 
 export type CauseFilter = CancellationCause | "all";

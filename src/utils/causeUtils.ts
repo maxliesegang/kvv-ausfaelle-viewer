@@ -6,35 +6,41 @@ import type { CancellationCause, CauseFilter } from "../types";
  * of the time-of-day / day-of-week helpers in `dateUtils.ts`.
  *
  * Display/priority order matches the scraper's classifier (specific causes before
- * generic ones): strike → weather → technical → construction → operational →
- * unknown.
+ * generic ones): strike → weather → vehicle → infrastructure → technical →
+ * personnel → operational → disruption → construction → unknown.
  * Extending is trivial: add the value to the scraper's enum, then here.
  */
 export const CAUSE_ORDER: ReadonlyArray<CancellationCause> = [
   "strike",
   "weather",
+  "vehicle",
+  "infrastructure",
   "technical",
-  "construction",
+  "personnel",
   "operational",
+  "disruption",
+  "construction",
   "unknown",
 ];
 
 export const CAUSE_LABELS: Record<CancellationCause, string> = {
   strike: "Streik",
   weather: "Witterung",
-  technical: "Technische Störung",
-  construction: "Bauarbeiten",
+  vehicle: "Fahrzeugstörung",
+  infrastructure: "Infrastrukturstörung",
+  technical: "Technischer Defekt",
+  personnel: "Personalmangel",
   operational: "Betriebsbedingt",
+  disruption: "Betriebsstörung",
+  construction: "Bauarbeiten",
   unknown: "Unbekannt",
 };
 
 const CAUSE_SET = new Set<CancellationCause>(CAUSE_ORDER);
 
 /** Coerces a raw/absent `cause` value into a known category; legacy records that
- * predate the field (or carry an unrecognised value) fall back to `unknown`. The
- * former `personnel` category was merged into `operational`, so remap it. */
+ * predate the field (or carry an unrecognised value) fall back to `unknown`. */
 export function normalizeCause(value: string | undefined): CancellationCause {
-  if (value === "personnel") return "operational";
   return value && CAUSE_SET.has(value as CancellationCause)
     ? (value as CancellationCause)
     : "unknown";
