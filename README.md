@@ -55,6 +55,10 @@ Pushes to `main` are automatically built and deployed to GitHub Pages via GitHub
 
 Consumes JSON data from [kvv-ausfaelle-scraper](https://maxliesegang.github.io/kvv-ausfaelle-scraper/)
 
+> [!IMPORTANT]
+> This is not an official KVV service. The data is collected automatically by scraping public
+> information and may be incomplete or contain errors.
+
 ## License
 
 MIT

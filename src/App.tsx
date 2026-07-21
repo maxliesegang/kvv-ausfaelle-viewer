@@ -58,6 +58,13 @@ function App() {
 
       <main className="page__main">
         <KernContainer>
+          <div className="page__alert">
+            <KernAlert title="Kein offizielles Angebot" variant="info">
+              Diese Anwendung ist kein offizielles Angebot des KVV. Die Daten werden automatisiert
+              ausgelesen und können unvollständig oder fehlerhaft sein.
+            </KernAlert>
+          </div>
+
           {error && (
             <div className="page__alert">
               <KernAlert title="Daten konnten nicht geladen werden" variant="danger">
