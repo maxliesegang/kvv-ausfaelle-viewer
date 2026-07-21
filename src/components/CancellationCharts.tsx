@@ -56,20 +56,21 @@ function BreakdownChart<T extends { count: number }>({
   horizontal = false,
   categoryWidth = 48,
 }: BreakdownChartProps<T>) {
+  const chartHeight = horizontal ? Math.max(260, data.length * 24) : 260;
   const valueAxis = horizontal ? (
     <XAxis type="number" tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
   ) : (
     <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
   );
   const categoryAxis = horizontal ? (
-    <YAxis dataKey={categoryKey} type="category" width={categoryWidth} tick={AXIS_TICK} tickLine={false} axisLine={false} />
+    <YAxis dataKey={categoryKey} type="category" width={categoryWidth} interval={0} tick={AXIS_TICK} tickLine={false} axisLine={false} />
   ) : (
-    <XAxis dataKey={categoryKey} tick={AXIS_TICK} tickLine={false} />
+    <XAxis dataKey={categoryKey} interval={0} tick={AXIS_TICK} tickLine={false} />
   );
 
   return (
     <ChartCard title={title} description={description}>
-      <ResponsiveContainer width="100%" height={260}>
+      <ResponsiveContainer width="100%" height={chartHeight}>
         <BarChart
           data={data}
           layout={horizontal ? "vertical" : "horizontal"}
