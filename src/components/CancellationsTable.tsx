@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   KernAccordion,
   KernAlert,
@@ -12,6 +12,8 @@ import {
 import type { Cancellation } from "../types";
 import { CAUSE_LABELS, normalizeCause } from "../utils/causeUtils";
 import { exportCancellationsCsv } from "../utils/csvExport";
+import { extractNoticeId } from "../utils/dataTransforms";
+import { NoticeDialog, type NoticeRef } from "./NoticeDialog";
 
 interface CancellationsTableProps {
   data: Cancellation[];
@@ -35,36 +37,54 @@ function renderStop(value: KernTableTransformedCellValue) {
   );
 }
 
-const COLUMNS: KernTableColumn[] = [
-  {
-    id: "date",
-    label: "Datum",
-    valueFormatter: (value) => <span className="cell-date">{String(value)}</span>,
-  },
-  {
-    id: "line",
-    label: "Linie",
-    valueFormatter: (value) => <span className="cell-line">{String(value)}</span>,
-  },
-  { id: "trainNumber", label: "Zug" },
-  { id: "from", label: "Von", valueFormatter: renderStop },
-  { id: "to", label: "Nach", valueFormatter: renderStop },
-  { id: "cause", label: "Ursache" },
-  {
-    id: "source",
-    label: "Quelle",
-    valueFormatter: (url) => (
-      <KernLink
-        href={String(url)}
-        target="_blank"
-        rel="noreferrer"
-        label="KVV"
-        icon="open-in-new"
-        small
-      />
-    ),
-  },
-];
+function createColumns(onOpenNotice: (notice: NoticeRef) => void): KernTableColumn[] {
+  return [
+    {
+      id: "date",
+      label: "Datum",
+      valueFormatter: (value) => <span className="cell-date">{String(value)}</span>,
+    },
+    {
+      id: "line",
+      label: "Linie",
+      valueFormatter: (value) => <span className="cell-line">{String(value)}</span>,
+    },
+    { id: "trainNumber", label: "Zug" },
+    { id: "from", label: "Von", valueFormatter: renderStop },
+    { id: "to", label: "Nach", valueFormatter: renderStop },
+    { id: "cause", label: "Ursache" },
+    {
+      id: "source",
+      label: "Quelle",
+      valueFormatter: (value) => {
+        const url = String(value);
+        const noticeId = extractNoticeId(url);
+        return (
+          <span className="cell-source">
+            <KernLink
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              label="KVV"
+              icon="open-in-new"
+              small
+            />
+            {noticeId && (
+              <KernButton
+                type="button"
+                variant="tertiary"
+                icon="info"
+                iconPosition="left"
+                label="Details"
+                onClick={() => onOpenNotice({ id: noticeId, sourceUrl: url })}
+              />
+            )}
+          </span>
+        );
+      },
+    },
+  ];
+}
 
 function buildFilename(selectedYear: string | null, hasActiveFilters: boolean): string {
   const year = selectedYear ? `-${selectedYear}` : "";
@@ -82,9 +102,13 @@ export function CancellationsTable({
   hasActiveFilters,
   selectedYear,
 }: CancellationsTableProps) {
+  const [notice, setNotice] = useState<NoticeRef | null>(null);
+
   const handleExport = () => {
     exportCancellationsCsv(data, buildFilename(selectedYear, hasActiveFilters));
   };
+
+  const columns = useMemo(() => createColumns(setNotice), []);
 
   const rows: KernTableRow[] = useMemo(
     () =>
@@ -127,8 +151,13 @@ export function CancellationsTable({
           Für die aktuellen Filter wurden keine Ausfälle gefunden.
         </KernAlert>
       ) : (
-        <KernTable columns={COLUMNS} rows={rows} striped responsive small />
+        <KernTable columns={columns} rows={rows} striped responsive small />
       )}
+      <NoticeDialog
+        notice={notice}
+        year={selectedYear}
+        onClose={() => setNotice(null)}
+      />
     </div>
   );
 

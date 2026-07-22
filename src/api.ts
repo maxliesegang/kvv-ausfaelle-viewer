@@ -36,3 +36,26 @@ export async function fetchLineData(
 ): Promise<Cancellation[]> {
   return fetchJson<Cancellation[]>(`/${year}/${file}`, signal);
 }
+
+/** Fetches the archived KVV notice text for a cancellation. The scraper stores
+ * one plain-text file per notice at `<year>/articles/<noticeId>.txt` (see the
+ * scraper's `docs/AGENTS.md` output contract). Resolves to `null` when no text
+ * has been archived yet (HTTP 404) — a normal state, distinct from a real fetch
+ * failure, which throws. */
+export async function fetchNoticeText(
+  year: string,
+  noticeId: string,
+  signal?: AbortSignal
+): Promise<string | null> {
+  const res = await fetch(
+    `${DATA_BASE_URL}/${year}/articles/${encodeURIComponent(noticeId)}.txt`,
+    { headers: { Accept: "text/plain" }, signal }
+  );
+  if (res.status === 404) {
+    return null;
+  }
+  if (!res.ok) {
+    throw new Error(`Failed to fetch notice ${noticeId}: ${res.status}`);
+  }
+  return res.text();
+}
