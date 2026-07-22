@@ -21,7 +21,7 @@ export function AppHeader({ theme, onToggleTheme }: AppHeaderProps) {
                 Fahrtausfälle im KVV-Netz
               </KernHeading>
               <KernText type="body" size="small" muted className="app-header__subtitle">
-                Auswertung der gemeldeten S-Bahn-Ausfälle
+                Gemeldete Ausfälle im S-Bahn-Netz
               </KernText>
             </div>
           </div>

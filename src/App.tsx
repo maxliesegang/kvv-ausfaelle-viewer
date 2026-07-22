@@ -10,6 +10,7 @@ import { AppHeader } from "./components/AppHeader";
 import { ChartCard } from "./components/ChartCard";
 import { CancellationsTable } from "./components/CancellationsTable";
 import { ControlBar } from "./components/ControlBar";
+import { SummaryBar } from "./components/SummaryBar";
 import { useKVVData } from "./hooks/useKVVData";
 import { useTheme } from "./hooks/useTheme";
 import {
@@ -60,8 +61,8 @@ function App() {
         <KernContainer>
           <div className="page__alert">
             <KernAlert title="Kein offizielles Angebot" variant="info">
-              Diese Anwendung ist kein offizielles Angebot des KVV. Die Daten werden automatisiert
-              ausgelesen und können unvollständig oder fehlerhaft sein.
+              Inoffizielle Auswertung. Die Daten werden automatisch erfasst und können
+              unvollständig sein.
             </KernAlert>
           </div>
 
@@ -83,10 +84,6 @@ function App() {
             filters={filters}
             onFiltersChange={handleFiltersChange}
             onClearFilters={handleClearFilters}
-            loading={loading}
-            total={cancellationsView.filtered.length}
-            lineStats={cancellationsView.lineStats}
-            dailyStats={cancellationsView.dailyStats}
           />
 
           <div className="canvas">
@@ -97,22 +94,29 @@ function App() {
             ) : (
               <>
                 {!error && (
-                  <Suspense
-                    fallback={
-                      <ChartCard title="Diagramme werden geladen…">
-                        <KernLoader />
-                      </ChartCard>
-                    }
-                  >
-                    <CancellationCharts
-                      dailyStats={cancellationsView.dailyStats}
+                  <>
+                    <SummaryBar
+                      total={cancellationsView.filtered.length}
                       lineStats={cancellationsView.lineStats}
-                      timeOfDayStats={cancellationsView.timeOfDayStats}
-                      dayOfWeekStats={cancellationsView.dayOfWeekStats}
-                      causeStats={cancellationsView.causeStats}
-                      theme={theme}
+                      dailyStats={cancellationsView.dailyStats}
                     />
-                  </Suspense>
+                    <Suspense
+                      fallback={
+                        <ChartCard title="Diagramme werden geladen…">
+                          <KernLoader />
+                        </ChartCard>
+                      }
+                    >
+                      <CancellationCharts
+                        dailyStats={cancellationsView.dailyStats}
+                        lineStats={cancellationsView.lineStats}
+                        timeOfDayStats={cancellationsView.timeOfDayStats}
+                        dayOfWeekStats={cancellationsView.dayOfWeekStats}
+                        causeStats={cancellationsView.causeStats}
+                        theme={theme}
+                      />
+                    </Suspense>
+                  </>
                 )}
 
                 <CancellationsTable

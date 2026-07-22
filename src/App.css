@@ -102,11 +102,9 @@
   border-radius: var(--kern-metric-border-radius-large);
 }
 
-/* One control line of three zones — filters · controls · result — separated by
-   dividers and a generous column gap. Items within a zone sit closer together
-   (see .toolbar__group / .filter-rail) than the zones do, so the grouping reads
-   clearly. Everything shares a bottom baseline; the line wraps zone-by-zone on
-   narrow viewports (see the media query). */
+/* One control line: the filters grow to fill, the disclosure group + reset
+   trail on the right. Everything shares a bottom baseline and wraps on narrow
+   viewports (see the media query). */
 .toolbar__controls {
   display: flex;
   flex-wrap: wrap;
@@ -114,21 +112,12 @@
   gap: 0.75rem var(--kern-metric-space-default, 1.25rem);
 }
 
-/* A zone of related controls, packed tighter than the inter-zone gap. */
+/* The disclosure toggles + reset, packed together. */
 .toolbar__group {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 0.5rem;
-}
-
-/* Divider between zones — matched to the field-control height and bottom-aligned
-   so it spans the inputs, not the labels floating above them. */
-.toolbar__sep {
-  align-self: flex-end;
-  width: 1px;
-  height: 2.5rem;
-  background: var(--kern-color-layout-border);
 }
 
 .toolbar__panel {
@@ -162,48 +151,43 @@
   min-width: 7.5rem;
 }
 
-/* ── Result summary (compact inline readout, trailing the controls) ──────────
-   Kept to a single non-wrapping line and not allowed to shrink, so it always
-   stays whole on the control row; the search field shrinks/grows around it. */
-
-.toolbar__summary {
-  flex: 0 0 auto;
-}
+/* ── Result summary (stat strip at the top of the canvas) ─────────────────────
+   A legible row of stat tiles — the casual visitor's answer. The total leads,
+   supporting facts follow; the whole strip wraps on narrow viewports. */
 
 .summary {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.05rem;
-  text-align: right;
-  white-space: nowrap;
-  line-height: 1.15;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.75rem 2.5rem;
+  padding: 1rem 1.25rem;
+  background: var(--kern-color-layout-background-hued);
+  border: 1px solid var(--kern-color-layout-border);
+  border-radius: var(--kern-metric-border-radius-large);
 }
 
-.summary__headline {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.3rem;
+.summary__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
 }
 
 .summary__value {
-  font-size: 1.375rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  line-height: 1;
+  line-height: 1.1;
   letter-spacing: -0.01em;
-  color: var(--kern-color-action-default);
   font-variant-numeric: tabular-nums;
 }
 
-.summary__unit {
-  font-size: 0.8125rem;
-  color: var(--kern-color-layout-text-muted);
+.summary__stat--primary .summary__value {
+  font-size: 1.875rem;
+  color: var(--kern-color-action-default);
 }
 
-.summary__meta {
+.summary__label {
   font-size: 0.75rem;
   color: var(--kern-color-layout-text-muted);
-  font-variant-numeric: tabular-nums;
 }
 
 /* "Zeit" expander panel: year + time-of-day + weekday selects on top, then the
@@ -471,14 +455,9 @@
     flex-wrap: wrap;
   }
 
-  .toolbar__sep {
-    display: none;
-  }
-
-  /* Each zone stacks full-width; within a zone the toggles share a row. */
+  /* Filters and the toggle group each stack full-width; toggles share a row. */
   .filter-rail,
-  .toolbar__group,
-  .toolbar__summary {
+  .toolbar__group {
     flex-basis: 100%;
   }
 
@@ -495,16 +474,5 @@
 
   .toolbar__reset {
     flex-basis: 100%;
-  }
-
-  .toolbar__summary {
-    margin-top: 0.25rem;
-  }
-
-  /* On its own full-width row, left-align the readout. */
-  .summary {
-    align-items: flex-start;
-    text-align: left;
-    white-space: normal;
   }
 }

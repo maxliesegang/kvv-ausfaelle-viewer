@@ -111,14 +111,17 @@ export default function CancellationCharts({
 
   return (
     <section className="charts-section">
-      <ChartCard
-        title="Ausfälle pro Tag"
-        description="Zeitlicher Verlauf der gemeldeten Fahrtausfälle"
-      >
+      <ChartCard title="Ausfälle pro Tag" description="Verlauf über die Zeit">
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={dailyStats} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="date" tickFormatter={formatShortDate} tick={AXIS_TICK} tickLine={false} />
+            <XAxis
+              dataKey="date"
+              tickFormatter={formatShortDate}
+              tick={AXIS_TICK}
+              tickLine={false}
+              minTickGap={28}
+            />
             <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
             <Tooltip
               cursor={{ fillOpacity: 0.08 }}
@@ -134,7 +137,7 @@ export default function CancellationCharts({
       <div className="charts-row">
         <BreakdownChart
           title="Nach Linie"
-          description="Betroffene Linien im Vergleich"
+          description="Am stärksten betroffen"
           data={lineStats}
           categoryKey="line"
           color={colors.line}
@@ -142,7 +145,7 @@ export default function CancellationCharts({
         />
         <BreakdownChart
           title="Nach Ursache"
-          description="Warum die Züge ausfallen (Schätzung)"
+          description="Grund des Ausfalls (Schätzung)"
           data={causeStats}
           categoryKey="cause"
           color={colors.cause}
@@ -151,14 +154,16 @@ export default function CancellationCharts({
         />
         <BreakdownChart
           title="Nach Tageszeit"
-          description="Zu welcher Uhrzeit fallen Züge aus"
+          description="Wann Züge ausfallen"
           data={timeOfDayStats}
           categoryKey="period"
           color={colors.timeOfDay}
+          horizontal
+          categoryWidth={84}
         />
         <BreakdownChart
           title="Nach Wochentag"
-          description="An welchen Tagen fallen die meisten Züge aus"
+          description="An welchen Tagen"
           data={dayOfWeekStats}
           categoryKey="day"
           color={colors.dayOfWeek}

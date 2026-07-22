@@ -13,36 +13,43 @@ function maxBy<T>(items: T[], value: (item: T) => number): T | undefined {
 }
 
 /**
- * Compact result readout that trails on the right of the control row: the
- * emphasized total over a muted "·"-joined line of supporting facts. Stacked
- * into two short lines so it stays narrow (saving horizontal space) while
- * fitting within the row's existing height.
+ * The result readout: a legible strip of stat tiles at the top of the canvas —
+ * the answer for a casual visitor. The total leads (large, brand-colored),
+ * followed by supporting facts (affected lines, strongest line, peak day), each
+ * a value over a muted label. Wraps on narrow viewports.
  */
 export function SummaryBar({ total, lineStats, dailyStats }: SummaryBarProps) {
   const peakDay = maxBy(dailyStats, (d) => d.count);
   const topLine = maxBy(lineStats, (l) => l.count);
 
-  const meta = [
-    `${lineStats.length} Linien`,
-    topLine ? topLine.line : null,
-    peakDay ? formatShortDate(peakDay.date) : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-
   return (
     <div className="summary" aria-label="Ergebnis der Auswahl">
-      <span className="summary__headline">
+      <div className="summary__stat summary__stat--primary">
         <span className="summary__value">{total.toLocaleString("de-DE")}</span>
-        <span className="summary__unit">{total === 1 ? "Ausfall" : "Ausfälle"}</span>
-      </span>
-      {total > 0 && (
-        <span
-          className="summary__meta"
-          title="Linien · stärkste Linie · Spitzentag"
-        >
-          {meta}
-        </span>
+        <span className="summary__label">{total === 1 ? "Ausfall" : "Ausfälle"}</span>
+      </div>
+
+      <div className="summary__stat">
+        <span className="summary__value">{lineStats.length}</span>
+        <span className="summary__label">Betroffene Linien</span>
+      </div>
+
+      {topLine && (
+        <div className="summary__stat">
+          <span className="summary__value">{topLine.line}</span>
+          <span className="summary__label">
+            Stärkste Linie · {topLine.count.toLocaleString("de-DE")}
+          </span>
+        </div>
+      )}
+
+      {peakDay && (
+        <div className="summary__stat">
+          <span className="summary__value">{formatShortDate(peakDay.date)}</span>
+          <span className="summary__label">
+            Spitzentag · {peakDay.count.toLocaleString("de-DE")}
+          </span>
+        </div>
       )}
     </div>
   );

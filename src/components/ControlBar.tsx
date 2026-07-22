@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { KernBadge, KernButton } from "@kern-ux-annex/kern-react-kit";
-import type { DailyStats, LineStats } from "../types";
 import type { LineFile } from "../hooks/useKVVData";
 import { FiltersSection } from "./FiltersSection";
 import { LinesSelector } from "./LinesSelector";
-import { SummaryBar } from "./SummaryBar";
 import { TimeFilters } from "./TimeFilters";
 import {
   getActiveFilterCount,
@@ -54,19 +52,15 @@ interface ControlBarProps {
   filters: CancellationFilters;
   onFiltersChange: (patch: Partial<CancellationFilters>) => void;
   onClearFilters: () => void;
-  loading: boolean;
-  total: number;
-  lineStats: LineStats[];
-  dailyStats: DailyStats[];
 }
 
 /**
  * Sticky toolbar. A single control line carries the always-visible inline
- * filters (search + cause), then the two disclosure expanders (Linien, and Zeit
- * — which groups year + period + time-of-day + weekday; opening one closes the
- * other), the inline reset, and a compact result readout ({@link SummaryBar})
- * trailing on the right — all flowing and wrapping together. Each expander's
- * panel drops in directly below the line.
+ * filters (search + cause), then the two disclosure expanders (Linien, and
+ * Zeitraum — which groups year + period + time-of-day + weekday; opening one
+ * closes the other) and the inline reset. Each expander's panel drops in
+ * directly below the line. The result readout lives in the canvas
+ * ({@link SummaryBar}), not here.
  */
 export function ControlBar({
   years,
@@ -78,10 +72,6 @@ export function ControlBar({
   filters,
   onFiltersChange,
   onClearFilters,
-  loading,
-  total,
-  lineStats,
-  dailyStats,
 }: ControlBarProps) {
   const [openPanel, setOpenPanel] = useState<Panel | null>(null);
 
@@ -94,12 +84,10 @@ export function ControlBar({
   return (
     <div className="toolbar">
       <div className="toolbar__controls">
-        {/* Zone 1 — the always-visible filters (search grows to fill). */}
+        {/* The always-visible filters (search grows to fill the row). */}
         <FiltersSection filters={filters} onFiltersChange={onFiltersChange} />
 
-        <span className="toolbar__sep" aria-hidden="true" />
-
-        {/* Zone 2 — disclosure expanders + reset. */}
+        {/* Disclosure expanders + reset, trailing on the right. */}
         <div className="toolbar__group">
           <PanelToggle
             panel="lines"
@@ -111,7 +99,7 @@ export function ControlBar({
 
           <PanelToggle
             panel="zeit"
-            label="Zeit"
+            label="Zeitraum"
             open={openPanel === "zeit"}
             onToggle={() => toggle("zeit")}
             badge={getZeitFilterCount(filters)}
@@ -128,16 +116,6 @@ export function ControlBar({
             />
           )}
         </div>
-
-        {/* Zone 3 — the result readout, trailing on the right. */}
-        {!loading && (
-          <>
-            <span className="toolbar__sep" aria-hidden="true" />
-            <div className="toolbar__summary">
-              <SummaryBar total={total} lineStats={lineStats} dailyStats={dailyStats} />
-            </div>
-          </>
-        )}
       </div>
 
       {openPanel === "lines" && (
