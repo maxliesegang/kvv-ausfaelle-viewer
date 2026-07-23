@@ -10,7 +10,7 @@ import {
   type KernTableTransformedCellValue,
 } from "@kern-ux-annex/kern-react-kit";
 import type { Cancellation } from "../types";
-import { CAUSE_LABELS, normalizeCause } from "../utils/causeUtils";
+import { resolveRawCauseLabel, type CauseCatalog } from "../utils/causeUtils";
 import { exportCancellationsCsv } from "../utils/csvExport";
 import { extractNoticeId } from "../utils/dataTransforms";
 import { NoticeDialog, type NoticeRef } from "./NoticeDialog";
@@ -20,6 +20,7 @@ interface CancellationsTableProps {
   loading: boolean;
   hasActiveFilters: boolean;
   selectedYear: string | null;
+  causeCatalog: CauseCatalog;
 }
 
 /** KernTable cell values must be primitives; rich cells are produced via a
@@ -101,11 +102,12 @@ export function CancellationsTable({
   loading,
   hasActiveFilters,
   selectedYear,
+  causeCatalog,
 }: CancellationsTableProps) {
   const [notice, setNotice] = useState<NoticeRef | null>(null);
 
   const handleExport = () => {
-    exportCancellationsCsv(data, buildFilename(selectedYear, hasActiveFilters));
+    exportCancellationsCsv(data, buildFilename(selectedYear, hasActiveFilters), causeCatalog);
   };
 
   const columns = useMemo(() => createColumns(setNotice), []);
@@ -118,10 +120,10 @@ export function CancellationsTable({
         trainNumber: item.trainNumber,
         from: packStop(item.fromStop, item.fromTime),
         to: packStop(item.toStop, item.toTime),
-        cause: CAUSE_LABELS[normalizeCause(item.cause)],
+        cause: resolveRawCauseLabel(causeCatalog, item.cause),
         source: item.sourceUrl,
       })),
-    [data]
+    [data, causeCatalog]
   );
 
   const count = data.length.toLocaleString("de-DE");

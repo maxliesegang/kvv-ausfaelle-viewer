@@ -34,13 +34,14 @@ There is no test runner configured. For meaningful source changes, run at least
 
 ## Architecture
 
-- `src/api.ts`: fetch wrappers for the scraper JSON hierarchy.
+- `src/api.ts`: fetch wrappers for the scraper JSON hierarchy; `fetchRootIndex` validates the root discovery contract via `src/utils/rootIndex.ts`.
+- `src/utils/rootIndex.ts`: runtime validation of the root `index.json` (`schemaVersion`, `years`, ordered `causes` taxonomy) — no unchecked `as RootIndex`.
 - `src/hooks/useKVVData.ts`: central loading state, caching, abort handling, and stale-response guards.
 - `src/hooks/useTheme.ts`: light/dark theme state (OS default + manual toggle, persisted in `localStorage`), sets `data-kern-theme` on `<html>`.
 - `src/hooks/useChartColors.ts`: resolves KERN CSS tokens to concrete `rgb()` for Recharts (re-resolved on theme change).
 - `src/utils/filtering.ts`: indexing, filtering, and chart aggregate computation (incl. `cause`); `getDateFilterCount` / `getAdvancedFilterCount` / `getActiveFilterCount` for the toolbar filter badges and reset label.
 - `src/utils/dateUtils.ts`: time-of-day and day-of-week bucket definitions.
-- `src/utils/causeUtils.ts`: cancellation cause ("Ursache") taxonomy — labels, ordering, filter options, `normalizeCause`.
+- `src/utils/causeUtils.ts`: cancellation cause ("Ursache") helpers driven by the scraper's published `causes` catalog (no hard-coded cause list) — `buildCauseCatalog`, `resolveCauseId`/`resolveCauseLabel`, `getCauseOptions`, `toCauseStats`. Drifted ids render as `Unbekannt (<id>)`, never collapsed to `unknown`.
 - `src/utils/dataTransforms.ts`: small pure helpers (e.g. line-file labels).
 - `src/utils/csvExport.ts`: client-side CSV export of the filtered rows.
 - `src/App.tsx`: top-level UI state for filters and the `useKVVData`/`useTheme` hooks.

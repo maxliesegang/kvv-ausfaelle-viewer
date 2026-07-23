@@ -28,6 +28,7 @@ function App() {
     loading,
     error,
     years,
+    causeCatalog,
     selectedYear,
     setSelectedYear,
     lineFiles,
@@ -39,10 +40,13 @@ function App() {
   const { theme, toggleTheme } = useTheme();
   const [filters, setFilters] = useState<CancellationFilters>(DEFAULT_CANCELLATION_FILTERS);
 
-  const indexedData = useMemo(() => indexCancellations(rawData), [rawData]);
+  const indexedData = useMemo(
+    () => indexCancellations(rawData, causeCatalog),
+    [rawData, causeCatalog]
+  );
   const cancellationsView = useMemo(
-    () => buildCancellationsView(indexedData, filters),
-    [filters, indexedData]
+    () => buildCancellationsView(indexedData, filters, causeCatalog),
+    [filters, indexedData, causeCatalog]
   );
 
   const handleFiltersChange = useCallback((patch: Partial<CancellationFilters>) => {
@@ -82,6 +86,7 @@ function App() {
             selectedFiles={selectedFiles}
             onSelectionChange={setSelectedFiles}
             filters={filters}
+            causeCatalog={causeCatalog}
             onFiltersChange={handleFiltersChange}
             onClearFilters={handleClearFilters}
           />
@@ -124,6 +129,7 @@ function App() {
                   loading={loading}
                   hasActiveFilters={cancellationsView.hasActiveFilters}
                   selectedYear={selectedYear}
+                  causeCatalog={causeCatalog}
                 />
               </>
             )}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { KernBadge, KernButton } from "@kern-ux-annex/kern-react-kit";
 import type { LineFile } from "../hooks/useKVVData";
+import type { CauseCatalog } from "../utils/causeUtils";
 import { FiltersSection } from "./FiltersSection";
 import { LinesSelector } from "./LinesSelector";
 import { TimeFilters } from "./TimeFilters";
@@ -50,6 +51,7 @@ interface ControlBarProps {
   selectedFiles: string[];
   onSelectionChange: (files: string[]) => void;
   filters: CancellationFilters;
+  causeCatalog: CauseCatalog;
   onFiltersChange: (patch: Partial<CancellationFilters>) => void;
   onClearFilters: () => void;
 }
@@ -70,6 +72,7 @@ export function ControlBar({
   selectedFiles,
   onSelectionChange,
   filters,
+  causeCatalog,
   onFiltersChange,
   onClearFilters,
 }: ControlBarProps) {
@@ -85,7 +88,11 @@ export function ControlBar({
     <div className="toolbar">
       <div className="toolbar__controls">
         {/* The always-visible filters (search grows to fill the row). */}
-        <FiltersSection filters={filters} onFiltersChange={onFiltersChange} />
+        <FiltersSection
+          filters={filters}
+          causeCatalog={causeCatalog}
+          onFiltersChange={onFiltersChange}
+        />
 
         {/* Disclosure expanders + reset, trailing on the right. */}
         <div className="toolbar__group">

@@ -1,4 +1,5 @@
 import type { RootIndex, YearIndex, Cancellation } from "./types";
+import { parseRootIndex } from "./utils/rootIndex";
 
 const DATA_BASE_URL = (
   import.meta.env.VITE_DATA_BASE_URL ??
@@ -19,7 +20,8 @@ async function fetchJson<T>(path: string, signal?: AbortSignal): Promise<T> {
 }
 
 export async function fetchRootIndex(signal?: AbortSignal): Promise<RootIndex> {
-  return fetchJson<RootIndex>("/index.json", signal);
+  const raw = await fetchJson<unknown>("/index.json", signal);
+  return parseRootIndex(raw);
 }
 
 export async function fetchYearIndex(

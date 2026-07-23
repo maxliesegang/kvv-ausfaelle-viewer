@@ -1,6 +1,5 @@
 import type {
   Cancellation,
-  CancellationCause,
   CauseFilter,
   CauseStats,
   DailyStats,
@@ -21,7 +20,12 @@ import {
   TIME_OF_DAY_CHART_ORDER,
   TIME_OF_DAY_LABELS,
 } from "./dateUtils";
-import { CAUSE_LABELS, CAUSE_ORDER, normalizeCause } from "./causeUtils";
+import {
+  resolveCauseId,
+  resolveCauseLabel,
+  toCauseStats,
+  type CauseCatalog,
+} from "./causeUtils";
 
 export interface CancellationFilters {
   search: string;
@@ -37,7 +41,8 @@ interface IndexedCancellation {
   searchText: string;
   timeOfDay: TimeOfDayCategory;
   dayOfWeek: DayOfWeek;
-  cause: CancellationCause;
+  /** Resolved cause key: a catalog id, or a raw id absent from the catalog. */
+  cause: string;
 }
 
 export const DEFAULT_CANCELLATION_FILTERS: Readonly<CancellationFilters> = {
@@ -60,21 +65,27 @@ export interface CancellationsView {
   hasActiveFilters: boolean;
 }
 
-function buildSearchText(item: Cancellation): string {
-  return [item.line, item.trainNumber, item.fromStop, item.toStop]
+function buildSearchText(item: Cancellation, causeLabel: string): string {
+  return [item.line, item.trainNumber, item.fromStop, item.toStop, causeLabel]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
 }
 
-export function indexCancellations(data: Cancellation[]): IndexedCancellation[] {
-  return data.map((item) => ({
-    item,
-    searchText: buildSearchText(item),
-    timeOfDay: getTimeOfDayCategory(item.fromTime),
-    dayOfWeek: getDayOfWeek(item.date),
-    cause: normalizeCause(item.cause),
-  }));
+export function indexCancellations(
+  data: Cancellation[],
+  catalog: CauseCatalog
+): IndexedCancellation[] {
+  return data.map((item) => {
+    const cause = resolveCauseId(item.cause);
+    return {
+      item,
+      searchText: buildSearchText(item, resolveCauseLabel(catalog, cause)),
+      timeOfDay: getTimeOfDayCategory(item.fromTime),
+      dayOfWeek: getDayOfWeek(item.date),
+      cause,
+    };
+  });
 }
 
 function toDailyStats(counts: Map<string, number>): DailyStats[] {
@@ -103,15 +114,6 @@ function toDayOfWeekStats(counts: Map<DayOfWeek, number>): DayOfWeekStats[] {
     .map((dow) => ({
       day: DAY_OF_WEEK_LABELS[dow],
       count: counts.get(dow) ?? 0,
-    }))
-    .filter((item) => item.count > 0);
-}
-
-function toCauseStats(counts: Map<CancellationCause, number>): CauseStats[] {
-  return CAUSE_ORDER
-    .map((cause) => ({
-      cause: CAUSE_LABELS[cause],
-      count: counts.get(cause) ?? 0,
     }))
     .filter((item) => item.count > 0);
 }
@@ -153,7 +155,8 @@ export function getActiveFilterCount(filters: CancellationFilters): number {
 
 export function buildCancellationsView(
   indexedData: IndexedCancellation[],
-  filters: CancellationFilters
+  filters: CancellationFilters,
+  catalog: CauseCatalog
 ): CancellationsView {
   const normalizedSearch = filters.search.trim().toLowerCase();
   const filtered: Cancellation[] = [];
@@ -161,7 +164,7 @@ export function buildCancellationsView(
   const lineCounts = new Map<string, number>();
   const timeOfDayCounts = new Map<TimeOfDayCategory, number>();
   const dayOfWeekCounts = new Map<DayOfWeek, number>();
-  const causeCounts = new Map<CancellationCause, number>();
+  const causeCounts = new Map<string, number>();
 
   for (const { item, searchText, timeOfDay, dayOfWeek, cause } of indexedData) {
     if (filters.dateFrom && item.date < filters.dateFrom) continue;
@@ -185,7 +188,7 @@ export function buildCancellationsView(
     lineStats: toLineStats(lineCounts),
     timeOfDayStats: toTimeOfDayStats(timeOfDayCounts),
     dayOfWeekStats: toDayOfWeekStats(dayOfWeekCounts),
-    causeStats: toCauseStats(causeCounts),
+    causeStats: toCauseStats(causeCounts, catalog),
     hasActiveFilters: getActiveFilterCount(filters) > 0,
   };
 }

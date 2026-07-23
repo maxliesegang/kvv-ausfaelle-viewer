@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchLineData, fetchRootIndex, fetchYearIndex } from "../api";
 import type { Cancellation } from "../types";
 import { lineFileToLabel } from "../utils/dataTransforms";
+import { buildCauseCatalog, EMPTY_CAUSE_CATALOG, type CauseCatalog } from "../utils/causeUtils";
 
 export interface LineFile {
   file: string;
@@ -51,6 +52,7 @@ export function useKVVData() {
   const [error, setError] = useState<string | null>(null);
 
   const [years, setYears] = useState<string[]>([]);
+  const [causeCatalog, setCauseCatalog] = useState<CauseCatalog>(EMPTY_CAUSE_CATALOG);
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
 
   const [lineFiles, setLineFiles] = useState<LineFile[]>([]);
@@ -83,6 +85,7 @@ export function useKVVData() {
         );
 
         setYears(sortedYears);
+        setCauseCatalog(buildCauseCatalog(root.causes));
         setSelectedYear((currentYear) => currentYear ?? sortedYears.at(-1) ?? null);
       } catch (e) {
         if (!isAbortError(e)) {
@@ -206,6 +209,7 @@ export function useKVVData() {
     loading,
     error,
     years,
+    causeCatalog,
     selectedYear,
     setSelectedYear,
     lineFiles,
