@@ -1,10 +1,15 @@
 import type { DailyStats, LineStats } from "../types";
 import { formatShortDate } from "../utils/dateUtils";
+import type { VerificationSummary } from "../utils/verificationUtils";
 
 interface SummaryBarProps {
   total: number;
   lineStats: LineStats[];
   dailyStats: DailyStats[];
+  /** Checked/confirmed tallies of the current selection. */
+  verification: VerificationSummary;
+  /** Provenance of the checks, e.g. `bahn.expert`; null when unknown. */
+  verificationSource: string | null;
 }
 
 function maxBy<T>(items: T[], value: (item: T) => number): T | undefined {
@@ -15,10 +20,17 @@ function maxBy<T>(items: T[], value: (item: T) => number): T | undefined {
 /**
  * The result readout: a legible strip of stat tiles at the top of the canvas —
  * the answer for a casual visitor. The total leads (large, brand-colored),
- * followed by supporting facts (affected lines, strongest line, peak day), each
- * a value over a muted label. Wraps on narrow viewports.
+ * followed by supporting facts (affected lines, strongest line, peak day, and —
+ * when any row carries a realtime verdict — how much of the selection was
+ * checked), each a value over a muted label. Wraps on narrow viewports.
  */
-export function SummaryBar({ total, lineStats, dailyStats }: SummaryBarProps) {
+export function SummaryBar({
+  total,
+  lineStats,
+  dailyStats,
+  verification,
+  verificationSource,
+}: SummaryBarProps) {
   const peakDay = maxBy(dailyStats, (d) => d.count);
   const topLine = maxBy(lineStats, (l) => l.count);
 
@@ -39,6 +51,18 @@ export function SummaryBar({ total, lineStats, dailyStats }: SummaryBarProps) {
           <span className="summary__value">{topLine.line}</span>
           <span className="summary__label">
             Stärkste Linie · {topLine.count.toLocaleString("de-DE")}
+          </span>
+        </div>
+      )}
+
+      {verification.checked > 0 && (
+        <div className="summary__stat">
+          <span className="summary__value">
+            {verification.checked.toLocaleString("de-DE")}
+          </span>
+          <span className="summary__label">
+            Geprüft{verificationSource ? ` · ${verificationSource}` : ""} ·{" "}
+            {verification.confirmed.toLocaleString("de-DE")} bestätigt
           </span>
         </div>
       )}

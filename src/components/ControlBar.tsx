@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { KernBadge, KernButton } from "@kern-ux-annex/kern-react-kit";
 import type { LineFile } from "../hooks/useKVVData";
-import type { CauseCatalog } from "../utils/causeUtils";
+import type { Catalogs } from "../utils/catalogs";
 import { FiltersSection } from "./FiltersSection";
 import { LinesSelector } from "./LinesSelector";
 import { TimeFilters } from "./TimeFilters";
@@ -51,14 +51,14 @@ interface ControlBarProps {
   selectedFiles: string[];
   onSelectionChange: (files: string[]) => void;
   filters: CancellationFilters;
-  causeCatalog: CauseCatalog;
+  catalogs: Catalogs;
   onFiltersChange: (patch: Partial<CancellationFilters>) => void;
   onClearFilters: () => void;
 }
 
 /**
  * Sticky toolbar. A single control line carries the always-visible inline
- * filters (search + cause), then the two disclosure expanders (Linien, and
+ * filters (search + cause + Prüfung), then the two disclosure expanders (Linien, and
  * Zeitraum — which groups year + period + time-of-day + weekday; opening one
  * closes the other) and the inline reset. Each expander's panel drops in
  * directly below the line. The result readout lives in the canvas
@@ -72,14 +72,14 @@ export function ControlBar({
   selectedFiles,
   onSelectionChange,
   filters,
-  causeCatalog,
+  catalogs,
   onFiltersChange,
   onClearFilters,
 }: ControlBarProps) {
   const [openPanel, setOpenPanel] = useState<Panel | null>(null);
 
-  // Linien and Zeit (year + period + time-of-day + weekday) expand; search and
-  // cause are always shown inline. Each expander carries its own active count.
+  // Linien and Zeit (year + period + time-of-day + weekday) expand; search,
+  // cause and Prüfung are always shown inline. Each expander carries its own active count.
   const toggle = (panel: Panel) => setOpenPanel((current) => (current === panel ? null : panel));
 
   const activeFilterCount = getActiveFilterCount(filters);
@@ -90,7 +90,7 @@ export function ControlBar({
         {/* The always-visible filters (search grows to fill the row). */}
         <FiltersSection
           filters={filters}
-          causeCatalog={causeCatalog}
+          catalogs={catalogs}
           onFiltersChange={onFiltersChange}
         />
 

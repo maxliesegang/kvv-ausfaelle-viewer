@@ -2,6 +2,9 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  ComposedChart,
+  Legend,
+  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -12,8 +15,10 @@ import type {
   CauseStats,
   DailyStats,
   DayOfWeekStats,
+  HourStats,
   LineStats,
-  TimeOfDayStats,
+  StopStats,
+  VerificationStats,
 } from "../types";
 import type { Theme } from "../hooks/useTheme";
 import { useChartColors } from "../hooks/useChartColors";
@@ -23,13 +28,32 @@ import { ChartCard } from "./ChartCard";
 interface CancellationChartsProps {
   dailyStats: DailyStats[];
   lineStats: LineStats[];
-  timeOfDayStats: TimeOfDayStats[];
+  stopStats: StopStats[];
+  hourStats: HourStats[];
   dayOfWeekStats: DayOfWeekStats[];
   causeStats: CauseStats[];
+  verificationStats: VerificationStats[];
+  /** Provenance of the realtime checks, e.g. `bahn.expert`; null when unknown.
+   * Only attribution — the "Nach Prüfung" card is switched by whether
+   * `verificationStats` has anything to show. */
+  verificationSource: string | null;
   theme: Theme;
 }
 
 const AXIS_TICK = { fontSize: 11 };
+const LEGEND_STYLE = { fontSize: 12 };
+
+/** Longest category label the horizontal charts render before eliding. Stop
+ * names in particular ("Karlsruhe Albtalbahnhof") would otherwise either wrap
+ * out of the reserved axis width or push the plot area to nothing. */
+const MAX_CATEGORY_LABEL = 22;
+
+function truncateLabel(value: unknown): string {
+  const text = String(value ?? "");
+  return text.length > MAX_CATEGORY_LABEL
+    ? `${text.slice(0, MAX_CATEGORY_LABEL - 1)}…`
+    : text;
+}
 
 interface BreakdownChartProps<T extends { count: number }> {
   title: string;
@@ -42,6 +66,11 @@ interface BreakdownChartProps<T extends { count: number }> {
   horizontal?: boolean;
   /** Width reserved for the category axis labels when `horizontal`. */
   categoryWidth?: number;
+  /** Recharts tick interval on the category axis: 0 labels every category
+   * (the default, right for a handful of them), 1 every other one. */
+  categoryInterval?: number;
+  /** Elide over-long category labels (stop names). */
+  truncateCategories?: boolean;
 }
 
 /** A single breakdown bar chart in the responsive grid. Horizontal and vertical
@@ -55,17 +84,20 @@ function BreakdownChart<T extends { count: number }>({
   color,
   horizontal = false,
   categoryWidth = 48,
+  categoryInterval = 0,
+  truncateCategories = false,
 }: BreakdownChartProps<T>) {
   const chartHeight = horizontal ? Math.max(260, data.length * 24) : 260;
+  const tickFormatter = truncateCategories ? truncateLabel : undefined;
   const valueAxis = horizontal ? (
     <XAxis type="number" tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
   ) : (
     <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
   );
   const categoryAxis = horizontal ? (
-    <YAxis dataKey={categoryKey} type="category" width={categoryWidth} interval={0} tick={AXIS_TICK} tickLine={false} axisLine={false} />
+    <YAxis dataKey={categoryKey} type="category" width={categoryWidth} interval={categoryInterval} tick={AXIS_TICK} tickLine={false} axisLine={false} tickFormatter={tickFormatter} />
   ) : (
-    <XAxis dataKey={categoryKey} interval={0} tick={AXIS_TICK} tickLine={false} />
+    <XAxis dataKey={categoryKey} interval={categoryInterval} tick={AXIS_TICK} tickLine={false} tickFormatter={tickFormatter} />
   );
 
   return (
@@ -90,9 +122,12 @@ function BreakdownChart<T extends { count: number }>({
 export default function CancellationCharts({
   dailyStats,
   lineStats,
-  timeOfDayStats,
+  stopStats,
+  hourStats,
   dayOfWeekStats,
   causeStats,
+  verificationStats,
+  verificationSource,
   theme,
 }: CancellationChartsProps) {
   const colors = useChartColors(theme);
@@ -111,9 +146,12 @@ export default function CancellationCharts({
 
   return (
     <section className="charts-section">
-      <ChartCard title="Ausfälle pro Tag" description="Verlauf über die Zeit">
+      <ChartCard
+        title="Ausfälle pro Tag"
+        description="Verlauf über die Zeit, mit dem gleitenden 7-Tage-Mittel — es glättet den starken Wochenrhythmus und zeigt den Trend"
+      >
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={dailyStats} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
+          <ComposedChart data={dailyStats} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis
               dataKey="date"
@@ -129,8 +167,20 @@ export default function CancellationCharts({
                 typeof label === "string" ? formatShortDate(label) : label
               }
             />
+            <Legend wrapperStyle={LEGEND_STYLE} />
             <Bar dataKey="count" name="Ausfälle" fill={colors.daily} radius={[3, 3, 0, 0]} />
-          </BarChart>
+            {/* Null until the 7-day window is full, so the line starts a week in
+                rather than being faked from a partial window. */}
+            <Line
+              type="monotone"
+              dataKey="rolling"
+              name="7-Tage-Mittel"
+              stroke={colors.dailyTrend}
+              strokeWidth={2}
+              dot={false}
+              connectNulls={false}
+            />
+          </ComposedChart>
         </ResponsiveContainer>
       </ChartCard>
 
@@ -152,15 +202,28 @@ export default function CancellationCharts({
           horizontal
           categoryWidth={108}
         />
-        <BreakdownChart
-          title="Nach Tageszeit"
-          description="Wann Züge ausfallen"
-          data={timeOfDayStats}
-          categoryKey="period"
-          color={colors.timeOfDay}
-          horizontal
-          categoryWidth={84}
-        />
+        {hourStats.length > 0 && (
+          <BreakdownChart
+            title="Nach Abfahrtsstunde"
+            description="Geplante Abfahrtszeit, Stunde für Stunde"
+            data={hourStats}
+            categoryKey="label"
+            color={colors.hour}
+            categoryInterval={1}
+          />
+        )}
+        {stopStats.length > 0 && (
+          <BreakdownChart
+            title="Nach Starthaltestelle"
+            description="Häufigste Abfahrtsorte ausgefallener Fahrten"
+            data={stopStats}
+            categoryKey="stop"
+            color={colors.stop}
+            horizontal
+            categoryWidth={140}
+            truncateCategories
+          />
+        )}
         <BreakdownChart
           title="Nach Wochentag"
           description="An welchen Tagen"
@@ -168,6 +231,21 @@ export default function CancellationCharts({
           categoryKey="day"
           color={colors.dayOfWeek}
         />
+        {verificationStats.length > 0 && (
+          <BreakdownChart
+            title="Nach Prüfung"
+            description={
+              verificationSource
+                ? `Abgleich mit Echtzeitdaten von ${verificationSource}`
+                : "Abgleich mit Echtzeitdaten"
+            }
+            data={verificationStats}
+            categoryKey="status"
+            color={colors.verification}
+            horizontal
+            categoryWidth={124}
+          />
+        )}
       </div>
     </section>
   );

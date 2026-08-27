@@ -24,6 +24,13 @@ export interface DatePreset {
   to: string;
 }
 
+/** Adds `days` to an ISO "YYYY-MM-DD" date, returning ISO again. Used to walk a
+ * continuous calendar axis for the daily series. */
+export function addDays(isoDate: string, days: number): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return formatDate(new Date(year, month - 1, day + days));
+}
+
 export interface DatePresets {
   last7: DatePreset;
   last30: DatePreset;
@@ -63,26 +70,18 @@ const TIME_OF_DAY_FILTER_SET = new Set<TimeOfDayFilter>(
   TIME_OF_DAY_OPTIONS.map((option) => option.value)
 );
 
-export const TIME_OF_DAY_CHART_ORDER: ReadonlyArray<TimeOfDayCategory> = [
-  "morning",
-  "late-morning",
-  "afternoon",
-  "evening",
-  "night",
-  "unknown",
-];
-
-export const TIME_OF_DAY_LABELS: Record<TimeOfDayCategory, string> = {
-  morning: "Morgens",
-  "late-morning": "Vormittags",
-  afternoon: "Nachmittags",
-  evening: "Abends",
-  night: "Nachts",
-  unknown: "Unbekannt",
-};
-
 export function isTimeOfDayFilter(value: string): value is TimeOfDayFilter {
   return TIME_OF_DAY_FILTER_SET.has(value as TimeOfDayFilter);
+}
+
+/** Parses the departure hour (0–23) out of an "HH:MM" time, or null when the
+ * record carries no usable time. The hour histogram needs the raw hour, which
+ * the coarse {@link getTimeOfDayCategory} buckets throw away. */
+export function getHour(time?: string): number | null {
+  if (!time) return null;
+  const hour = Number.parseInt(time.split(":")[0], 10);
+  if (Number.isNaN(hour) || hour < 0 || hour > 23) return null;
+  return hour;
 }
 
 export function getTimeOfDayCategory(time?: string): TimeOfDayCategory {

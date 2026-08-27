@@ -1,90 +1,47 @@
 # AGENTS.md
 
 Repository-wide guidance for AI agents working in `kvv-ausfaelle-viewer`.
+Architecture detail lives in [CLAUDE.md](CLAUDE.md) — read it before non-trivial changes; keep both files in sync when structure or conventions change.
 
-## Scope Model
+Use the most specific `AGENTS.md` for the file you are editing: root rules apply everywhere, nested files override/add for their subtree.
 
-Use the most specific `AGENTS.md` available for the file you are editing.
+## Project snapshot
 
-- Root rules here apply everywhere.
-- Nested `AGENTS.md` files override/add guidance for their subtree.
-
-## Project Snapshot
-
-- **Purpose:** Client-side React app for visualizing KVV train cancellation data.
-- **Stack:** React 19, TypeScript, Vite, Recharts, KERN UX design system (`@kern-ux-annex/kern-react-kit`), layout-only custom CSS.
-- **Runtime:** Static GitHub Pages site; no backend in this repository.
-- **Data source:** Static JSON from `kvv-ausfaelle-scraper`, configured via `VITE_DATA_BASE_URL`.
-- **Package manager:** npm with `package-lock.json`.
-- **Node:** `^20.19.0 || >=22.12.0`; npm `>=10`.
+- **Purpose:** client-side React app visualizing KVV train cancellation data.
+- **Stack:** React 19, TypeScript, Vite, Recharts, KERN UX (`@kern-ux-annex/kern-react-kit`), layout-only custom CSS.
+- **Runtime:** static GitHub Pages site; no backend in this repo. Data is static JSON from `kvv-ausfaelle-scraper` via `VITE_DATA_BASE_URL` (unset → hosted scraper output).
+- **Tooling:** npm + `package-lock.json`; Node `^20.19.0 || >=22.12.0`, npm `>=10`.
 
 ## Commands
 
 ```bash
-npm ci           # Install dependencies from package-lock.json
-npm run dev      # Start Vite dev server
-npm run build    # Type-check with tsc -b, then build production assets
-npm run lint     # Run ESLint
-npm run preview  # Serve the production build locally
-npm run deploy   # Build and publish dist/ to GitHub Pages
+npm ci           # Install from package-lock.json
+npm run dev      # Vite dev server
+npm run build    # tsc -b, then production build
+npm run lint     # ESLint
+npm run preview  # Serve the production build
+npm run deploy   # Build + publish dist/ to GitHub Pages
 ```
 
-There is no test runner configured. For meaningful source changes, run at least
-`npm run lint` and `npm run build`.
+No test runner. Run at least `npm run lint` and `npm run build` for meaningful source changes.
 
-## Architecture
+## Layout
 
-- `src/api.ts`: fetch wrappers for the scraper JSON hierarchy; `fetchRootIndex` validates the root discovery contract via `src/utils/rootIndex.ts`.
-- `src/utils/rootIndex.ts`: runtime validation of the root `index.json` (`schemaVersion`, `years`, ordered `causes` taxonomy) — no unchecked `as RootIndex`.
-- `src/hooks/useKVVData.ts`: central loading state, caching, abort handling, and stale-response guards.
-- `src/hooks/useTheme.ts`: light/dark theme state (OS default + manual toggle, persisted in `localStorage`), sets `data-kern-theme` on `<html>`.
-- `src/hooks/useChartColors.ts`: resolves KERN CSS tokens to concrete `rgb()` for Recharts (re-resolved on theme change).
-- `src/utils/filtering.ts`: indexing, filtering, and chart aggregate computation (incl. `cause`); `getDateFilterCount` / `getAdvancedFilterCount` / `getActiveFilterCount` for the toolbar filter badges and reset label.
-- `src/utils/dateUtils.ts`: time-of-day and day-of-week bucket definitions.
-- `src/utils/causeUtils.ts`: cancellation cause ("Ursache") helpers driven by the scraper's published `causes` catalog (no hard-coded cause list) — `buildCauseCatalog`, `resolveCauseId`/`resolveCauseLabel`, `getCauseOptions`, `toCauseStats`. Drifted ids render as `Unbekannt (<id>)`, never collapsed to `unknown`.
-- `src/utils/dataTransforms.ts`: small pure helpers (e.g. line-file labels).
-- `src/utils/csvExport.ts`: client-side CSV export of the filtered rows.
-- `src/App.tsx`: top-level UI state for filters and the `useKVVData`/`useTheme` hooks.
-- `src/components/`: presentational components driven by props — `AppHeader`, `ControlBar` (sticky toolbar + Linien/Zeitraum/Filter disclosure panels + inline result readout), `DateRangeFilter`, `FiltersSection`, `LinesSelector`, `SummaryBar` (inline result readout), charts, `CancellationsTable` (KernAccordion).
+- `src/api.ts` — fetch wrappers over the scraper JSON hierarchy (root index → year index → line files → archived notices).
+- `src/utils/rootIndex.ts` — runtime validation of the root discovery contract; never `as RootIndex`.
+- `src/hooks/` — `useKVVData` (loading, caching, abort + stale-response guards), `useTheme`, `useChartColors`.
+- `src/utils/` — `filtering` (indexing, filtering, all chart aggregates, filter counts), `dateUtils`, `taxonomy` (shared ordering/label rules), `causeUtils`, `verificationUtils`, `catalogs`, `dataTransforms`, `csvExport`.
+- `src/App.tsx` — the only page state (filters) plus the data/theme hooks.
+- `src/components/` — presentational, prop-driven: `AppHeader`, `ControlBar`, `FiltersSection`, `FilterSelect`, `YearSelector`, `TimeFilters`, `LinesSelector`, `SummaryBar`, `CancellationCharts`/`ChartCard`, `CancellationsTable`, `NoticeDialog`.
 
-The app fetches a root `index.json`, then a selected year's `index.json`, then
-line-specific cancellation files. Loaded files are cached in memory by
-`year/file`.
+## Rules
 
-## UI & Styling
-
-- All UI is built from KERN UX React components; the kit's self-contained CSS
-  (tokens, light/dark themes, fonts, component styles) is imported once in
-  `src/main.tsx`. Use only the current `--kern-*` token taxonomy.
-- **Layout = toolbar + canvas with progressive disclosure**: a sticky `ControlBar`
-  (year, plus Linien / Zeitraum / Filter disclosure toggles, with the live result
-  readout inline on the right) over a single-column canvas (charts →
-  collapsed-by-default `KernAccordion` table). Keep the casual answer visible and
-  tuck power controls behind toolbar disclosure panels / the table collapse — don't
-  reintroduce an always-on sidebar of every control, and don't make search a
-  prominent always-on field.
-- KERN form controls show a "- Optional" label suffix unless `required` is set —
-  pass `required` on always-valued filter controls rather than CSS-hiding it.
-- `src/App.css` is **layout-only** — there is no custom color palette. Drive
-  colors and spacing from KERN tokens.
-- UI copy is in German.
-
-## Implementation Notes
-
-1. Keep changes small and local; follow the existing component and utility split.
-2. Preserve the static-site deployment model. `vite.config.ts` uses the
-   `/kvv-ausfaelle-viewer/` base path for GitHub Pages.
-3. Do not manually edit generated artifacts in `dist/` or dependencies in
-   `node_modules/`.
-4. Keep UI copy in German unless a task explicitly asks otherwise.
-5. Prefer typed transformations in `src/utils/` over duplicating data-shaping
-   logic inside components.
-6. Be careful with async data loading in `useKVVData.ts`: preserve
-   `AbortController`, request-id stale response checks, and cache behavior.
-7. When changing chart/filter behavior, update the relevant TypeScript types in
-   `src/types.ts` and keep chart ordering/labels centralized in utilities.
-
-## Environment
-
-Set `VITE_DATA_BASE_URL` during development to point at an alternate scraper
-output. If it is unset, the app uses the hosted scraper data.
+1. Keep changes small and local; follow the existing component/utility split, and prefer typed transformations in `src/utils/` over data shaping inside components.
+2. Preserve the static-site model (`vite.config.ts` base `/kvv-ausfaelle-viewer/`). Never edit `dist/` or `node_modules/`.
+3. UI copy is German. Keep it so unless a task says otherwise.
+4. **Taxonomies come from the producer.** No hard-coded cause list, label map or ordering — extend the scraper catalog instead. Unknown/drifted ids stay visible (`Unbekannt (<id>)`), never silently collapsed. Verification is the one exception: German display text is hard-coded because the scraper publishes it in English.
+5. Verification verdicts are advisory and are shown **grouped** (`confirmed` / `contradicted` / `inconclusive`) on every surface; a new scraper status must fall back to `inconclusive`, never to a claim. The whole verification UI hides when the source publishes no taxonomy.
+6. Be careful in `useKVVData.ts`: preserve `AbortController`, `requestId` stale checks, and the file cache.
+7. Keep the toolbar + canvas layout with progressive disclosure — don't reintroduce an always-on sidebar of every control.
+8. All UI is KERN components with `--kern-*` tokens; `src/App.css` is layout-only and there is no custom color palette. Pass `required` on always-valued form controls instead of CSS-hiding the "- Optional" suffix.
+9. When changing chart/filter behavior, update `src/types.ts` and keep ordering/labels centralized in `src/utils/`.

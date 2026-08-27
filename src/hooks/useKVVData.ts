@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchLineData, fetchRootIndex, fetchYearIndex } from "../api";
 import type { Cancellation } from "../types";
 import { lineFileToLabel } from "../utils/dataTransforms";
-import { buildCauseCatalog, EMPTY_CAUSE_CATALOG, type CauseCatalog } from "../utils/causeUtils";
+import { buildCatalogs, EMPTY_CATALOGS, type Catalogs } from "../utils/catalogs";
 
 export interface LineFile {
   file: string;
@@ -52,10 +52,13 @@ export function useKVVData() {
   const [error, setError] = useState<string | null>(null);
 
   const [years, setYears] = useState<string[]>([]);
-  const [causeCatalog, setCauseCatalog] = useState<CauseCatalog>(EMPTY_CAUSE_CATALOG);
+  const [catalogs, setCatalogs] = useState<Catalogs>(EMPTY_CATALOGS);
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
 
   const [lineFiles, setLineFiles] = useState<LineFile[]>([]);
+  /** Provenance of the selected year's verification checks (e.g. `bahn.expert`),
+   * for attribution in the UI. Null when the year publishes no summary. */
+  const [verificationSource, setVerificationSource] = useState<string | null>(null);
   const [selectedFiles, setSelectedFilesRaw] = useState<string[]>([]);
 
   const [rawData, setRawData] = useState<Cancellation[]>([]);
@@ -85,7 +88,7 @@ export function useKVVData() {
         );
 
         setYears(sortedYears);
-        setCauseCatalog(buildCauseCatalog(root.causes));
+        setCatalogs(buildCatalogs(root));
         setSelectedYear((currentYear) => currentYear ?? sortedYears.at(-1) ?? null);
       } catch (e) {
         if (!isAbortError(e)) {
@@ -108,6 +111,7 @@ export function useKVVData() {
   useEffect(() => {
     if (!selectedYear) {
       setLineFiles([]);
+      setVerificationSource(null);
       setSelectedFilesRaw([]);
       setRawData([]);
       return;
@@ -120,6 +124,7 @@ export function useKVVData() {
       setError(null);
       setRawData([]);
       setSelectedFilesRaw([]);
+      setVerificationSource(null);
 
       try {
         const yearIndex = await fetchYearIndex(selectedYear, controller.signal);
@@ -130,6 +135,7 @@ export function useKVVData() {
 
         setLineFiles(files);
         setSelectedFilesRaw(defaultSelection);
+        setVerificationSource(yearIndex.verification?.source ?? null);
       } catch (e) {
         if (!isAbortError(e)) {
           setError((e as Error).message);
@@ -209,7 +215,8 @@ export function useKVVData() {
     loading,
     error,
     years,
-    causeCatalog,
+    catalogs,
+    verificationSource,
     selectedYear,
     setSelectedYear,
     lineFiles,

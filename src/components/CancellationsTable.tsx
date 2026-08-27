@@ -10,7 +10,15 @@ import {
   type KernTableTransformedCellValue,
 } from "@kern-ux-annex/kern-react-kit";
 import type { Cancellation } from "../types";
-import { resolveRawCauseLabel, type CauseCatalog } from "../utils/causeUtils";
+import { resolveRawCauseLabel } from "../utils/causeUtils";
+import type { Catalogs } from "../utils/catalogs";
+import {
+  getVerificationGroupLabel,
+  resolveVerificationDescription,
+  resolveVerificationGroup,
+  resolveVerificationLabel,
+  resolveVerificationStatus,
+} from "../utils/verificationUtils";
 import { exportCancellationsCsv } from "../utils/csvExport";
 import { extractNoticeId } from "../utils/dataTransforms";
 import { NoticeDialog, type NoticeRef } from "./NoticeDialog";
@@ -20,13 +28,18 @@ interface CancellationsTableProps {
   loading: boolean;
   hasActiveFilters: boolean;
   selectedYear: string | null;
-  causeCatalog: CauseCatalog;
+  catalogs: Catalogs;
 }
 
 /** KernTable cell values must be primitives; rich cells are produced via a
  * column `valueFormatter`. Stop + time are packed with this separator and
  * unpacked back into a two-line cell in {@link renderStop}. */
 const STOP_TIME_SEP = "␟";
+
+/** Same trick for the verification cell: the group id travels with the group
+ * label and the precise-status tooltip, so the formatter can key the dot's
+ * modifier class off the group. */
+const STATUS_SEP = "␞";
 
 function renderStop(value: KernTableTransformedCellValue) {
   const [stop, time] = String(value).split(STOP_TIME_SEP);
@@ -38,7 +51,23 @@ function renderStop(value: KernTableTransformedCellValue) {
   );
 }
 
-function createColumns(onOpenNotice: (notice: NoticeRef) => void): KernTableColumn[] {
+/** The verdict as a small colored dot plus its group label. The row reads in the
+ * same three-way vocabulary as the filter and the chart; the precise status and
+ * its explanation are one hover away in the `title`. */
+function renderVerification(value: KernTableTransformedCellValue) {
+  const [group, label, detail] = String(value).split(STATUS_SEP);
+  return (
+    <span className={`cell-verification cell-verification--${group}`} title={detail}>
+      <span className="cell-verification__dot" aria-hidden="true" />
+      {label}
+    </span>
+  );
+}
+
+function createColumns(
+  onOpenNotice: (notice: NoticeRef) => void,
+  showVerification: boolean
+): KernTableColumn[] {
   return [
     {
       id: "date",
@@ -54,6 +83,9 @@ function createColumns(onOpenNotice: (notice: NoticeRef) => void): KernTableColu
     { id: "from", label: "Von", valueFormatter: renderStop },
     { id: "to", label: "Nach", valueFormatter: renderStop },
     { id: "cause", label: "Ursache" },
+    ...(showVerification
+      ? [{ id: "verification", label: "Prüfung", valueFormatter: renderVerification }]
+      : []),
     {
       id: "source",
       label: "Quelle",
@@ -97,20 +129,36 @@ function packStop(stop: string, time: string | undefined): string {
   return time ? `${stop}${STOP_TIME_SEP}${time}` : stop;
 }
 
+function packVerification(
+  catalogs: Catalogs,
+  verification: Cancellation["verification"]
+): string {
+  const status = resolveVerificationStatus(verification);
+  const group = resolveVerificationGroup(status);
+  const statusLabel = resolveVerificationLabel(catalogs.verification, status);
+  const statusDescription = resolveVerificationDescription(catalogs.verification, status);
+  const detail = statusDescription ? `${statusLabel} — ${statusDescription}` : statusLabel;
+  return [group, getVerificationGroupLabel(group), detail].join(STATUS_SEP);
+}
+
 export function CancellationsTable({
   data,
   loading,
   hasActiveFilters,
   selectedYear,
-  causeCatalog,
+  catalogs,
 }: CancellationsTableProps) {
   const [notice, setNotice] = useState<NoticeRef | null>(null);
 
   const handleExport = () => {
-    exportCancellationsCsv(data, buildFilename(selectedYear, hasActiveFilters), causeCatalog);
+    exportCancellationsCsv(data, buildFilename(selectedYear, hasActiveFilters), catalogs);
   };
 
-  const columns = useMemo(() => createColumns(setNotice), []);
+  const showVerification = catalogs.verification.available;
+  const columns = useMemo(
+    () => createColumns(setNotice, showVerification),
+    [showVerification]
+  );
 
   const rows: KernTableRow[] = useMemo(
     () =>
@@ -120,10 +168,11 @@ export function CancellationsTable({
         trainNumber: item.trainNumber,
         from: packStop(item.fromStop, item.fromTime),
         to: packStop(item.toStop, item.toTime),
-        cause: resolveRawCauseLabel(causeCatalog, item.cause),
+        cause: resolveRawCauseLabel(catalogs.causes, item.cause),
+        verification: packVerification(catalogs, item.verification),
         source: item.sourceUrl,
       })),
-    [data, causeCatalog]
+    [data, catalogs]
   );
 
   const count = data.length.toLocaleString("de-DE");

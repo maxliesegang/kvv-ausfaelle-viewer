@@ -3,27 +3,42 @@ import type { Theme } from "./useTheme";
 
 export interface ChartColors {
   daily: string;
+  /** The trailing-mean line drawn over the daily bars — deliberately the plain
+   * text color, so it reads as an annotation of the bars rather than a rival
+   * series with its own identity. */
+  dailyTrend: string;
   line: string;
-  timeOfDay: string;
+  stop: string;
+  hour: string;
   dayOfWeek: string;
   cause: string;
+  verification: string;
 }
 
+/** Each chart carries a single series, so these hues only need to be legible on
+ * their own — they are not a categorical scale and must not be read as one. */
 const TOKENS: Record<keyof ChartColors, string> = {
   daily: "--kern-color-action-default",
+  dailyTrend: "--kern-color-layout-text-default",
   line: "--kern-color-feedback-success",
-  timeOfDay: "--kern-color-feedback-warning",
-  dayOfWeek: "--kern-color-feedback-info",
+  stop: "--kern-color-feedback-info",
+  hour: "--kern-color-feedback-warning",
+  dayOfWeek: "--kern-color-action-visited",
   cause: "--kern-color-feedback-danger",
+  verification: "--kern-color-action-default",
 };
 
-/** Sensible KERN-ish fallbacks used before the computed styles are read. */
+/** Sensible KERN-ish fallbacks used before the computed styles are read, and
+ * whenever a token is missing from the loaded theme. */
 const FALLBACK: ChartColors = {
   daily: "#2d3c80",
+  dailyTrend: "#1b1b1b",
   line: "#2e7d32",
-  timeOfDay: "#b45309",
-  dayOfWeek: "#1565c0",
+  stop: "#1565c0",
+  hour: "#b45309",
+  dayOfWeek: "#5b21b6",
   cause: "#b3261e",
+  verification: "#2d3c80",
 };
 
 /**
@@ -42,9 +57,11 @@ export function useChartColors(theme: Theme): ChartColors {
     probe.style.visibility = "hidden";
     document.body.appendChild(probe);
 
+    // The `var()` fallback matters: an unknown token would otherwise compute to
+    // the inherited color rather than to ours.
     const read = (token: string, fallback: string) => {
       probe.style.color = fallback;
-      probe.style.color = `var(${token})`;
+      probe.style.color = `var(${token}, ${fallback})`;
       return getComputedStyle(probe).color || fallback;
     };
 

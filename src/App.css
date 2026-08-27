@@ -314,8 +314,20 @@
 
 .charts-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  grid-template-columns: 1fr;
   gap: 1.25rem;
+}
+
+@media (min-width: 40rem) {
+  .charts-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 64rem) {
+  .charts-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .chart-wrapper {
@@ -398,6 +410,45 @@
   gap: 0.75rem;
   flex-wrap: wrap;
 }
+
+/* Verification verdict: a status dot plus the grouped label. The dot carries the
+   only color, so the cell stays readable in both themes and the column does not
+   compete with the row content. Keyed by group id (confirmed / contradicted /
+   inconclusive), matching what the filter and the chart show. */
+.cell-verification {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.cell-verification__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--kern-color-layout-text-muted);
+}
+
+.cell-verification--confirmed .cell-verification__dot {
+  background: var(--kern-color-feedback-danger);
+}
+
+.cell-verification--contradicted .cell-verification__dot {
+  background: var(--kern-color-feedback-warning);
+}
+
+/* The majority case, and the one that says nothing — muted, with a hollow dot so
+   it recedes behind the rows that carry actual evidence. */
+.cell-verification--inconclusive {
+  color: var(--kern-color-layout-text-muted);
+}
+
+.cell-verification--inconclusive .cell-verification__dot {
+  background: transparent;
+  border: 1px solid var(--kern-color-layout-border);
+}
+
 
 /* ── Notice dialog ───────────────────────────────────────────────────────── */
 

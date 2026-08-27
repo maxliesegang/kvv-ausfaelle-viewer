@@ -1,4 +1,5 @@
 import type { CauseStats, CauseDefinition } from "../types";
+import { buildLabelMap, orderTaxonomyIds } from "./taxonomy";
 
 /**
  * Cancellation cause ("Ursache") helpers, driven entirely by the taxonomy the
@@ -38,7 +39,7 @@ export function buildCauseCatalog(
 ): CauseCatalog {
   return {
     definitions,
-    labelById: new Map(definitions.map((def) => [def.id, def.label])),
+    labelById: buildLabelMap(definitions),
   };
 }
 
@@ -90,29 +91,11 @@ export function toCauseStats(
   counts: ReadonlyMap<string, number>,
   catalog: CauseCatalog
 ): CauseStats[] {
-  const catalogIds = catalog.definitions.map((def) => def.id);
-  const known = new Set(catalogIds);
-
-  const extras = [...counts.keys()]
-    .filter((id) => !known.has(id) && id !== UNKNOWN_CAUSE_ID)
-    .sort((a, b) => a.localeCompare(b));
-
-  // Catalog order, with the drifted extras spliced in just before `unknown`.
-  const order: string[] = [];
-  let extrasPlaced = false;
-  for (const id of catalogIds) {
-    if (id === UNKNOWN_CAUSE_ID) {
-      order.push(...extras);
-      extrasPlaced = true;
-    }
-    order.push(id);
-  }
-  // Fallback for a catalog without `unknown` (the empty pre-load catalog, or an
-  // otherwise malformed one): trail the extras then the unknown bucket.
-  if (!extrasPlaced) {
-    order.push(...extras);
-    if (counts.has(UNKNOWN_CAUSE_ID)) order.push(UNKNOWN_CAUSE_ID);
-  }
+  const order = orderTaxonomyIds(
+    catalog.definitions.map((def) => def.id),
+    counts.keys(),
+    UNKNOWN_CAUSE_ID
+  );
 
   return order
     .map((id) => ({ cause: resolveCauseLabel(catalog, id), count: counts.get(id) ?? 0 }))

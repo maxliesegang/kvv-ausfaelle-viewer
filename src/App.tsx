@@ -28,7 +28,8 @@ function App() {
     loading,
     error,
     years,
-    causeCatalog,
+    catalogs,
+    verificationSource,
     selectedYear,
     setSelectedYear,
     lineFiles,
@@ -41,12 +42,12 @@ function App() {
   const [filters, setFilters] = useState<CancellationFilters>(DEFAULT_CANCELLATION_FILTERS);
 
   const indexedData = useMemo(
-    () => indexCancellations(rawData, causeCatalog),
-    [rawData, causeCatalog]
+    () => indexCancellations(rawData, catalogs),
+    [rawData, catalogs]
   );
   const cancellationsView = useMemo(
-    () => buildCancellationsView(indexedData, filters, causeCatalog),
-    [filters, indexedData, causeCatalog]
+    () => buildCancellationsView(indexedData, filters, catalogs),
+    [filters, indexedData, catalogs]
   );
 
   const handleFiltersChange = useCallback((patch: Partial<CancellationFilters>) => {
@@ -86,7 +87,7 @@ function App() {
             selectedFiles={selectedFiles}
             onSelectionChange={setSelectedFiles}
             filters={filters}
-            causeCatalog={causeCatalog}
+            catalogs={catalogs}
             onFiltersChange={handleFiltersChange}
             onClearFilters={handleClearFilters}
           />
@@ -104,6 +105,8 @@ function App() {
                       total={cancellationsView.filtered.length}
                       lineStats={cancellationsView.lineStats}
                       dailyStats={cancellationsView.dailyStats}
+                      verification={cancellationsView.verificationSummary}
+                      verificationSource={verificationSource}
                     />
                     <Suspense
                       fallback={
@@ -115,9 +118,12 @@ function App() {
                       <CancellationCharts
                         dailyStats={cancellationsView.dailyStats}
                         lineStats={cancellationsView.lineStats}
-                        timeOfDayStats={cancellationsView.timeOfDayStats}
+                        stopStats={cancellationsView.stopStats}
+                        hourStats={cancellationsView.hourStats}
                         dayOfWeekStats={cancellationsView.dayOfWeekStats}
                         causeStats={cancellationsView.causeStats}
+                        verificationStats={cancellationsView.verificationStats}
+                        verificationSource={verificationSource}
                         theme={theme}
                       />
                     </Suspense>
@@ -129,7 +135,7 @@ function App() {
                   loading={loading}
                   hasActiveFilters={cancellationsView.hasActiveFilters}
                   selectedYear={selectedYear}
-                  causeCatalog={causeCatalog}
+                  catalogs={catalogs}
                 />
               </>
             )}
