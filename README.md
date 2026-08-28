@@ -8,7 +8,7 @@
 
 - "Toolbar + canvas" layout: a summary strip, interactive charts (daily trend with 7-day mean, by line, cause, departure hour, departure stop, weekday and verification), and a collapsible detail table
 - Filtering by text, year, line, date range, time of day, weekday, cause and verification — bulky controls tucked behind toolbar disclosure panels
-- Realtime verification: announcements cross-checked against bahn.expert, shown as bestätigt / fuhr trotz Meldung / kein Befund
+- Realtime verification: announcements cross-checked against bahn.expert and Transitous when available, shown as bestätigt / fuhr trotz Meldung / kein Befund
 - Archived KVV notices readable per row
 - CSV export of the currently filtered rows (Excel-friendly, UTF-8 BOM)
 - Built with the [KERN UX](https://www.kern-ux.de/) design system; responsive, light/dark theme (auto + manual toggle)

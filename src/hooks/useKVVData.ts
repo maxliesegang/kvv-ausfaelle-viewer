@@ -3,6 +3,7 @@ import { fetchLineData, fetchRootIndex, fetchYearIndex } from "../api";
 import type { Cancellation } from "../types";
 import { lineFileToLabel } from "../utils/dataTransforms";
 import { buildCatalogs, EMPTY_CATALOGS, type Catalogs } from "../utils/catalogs";
+import { formatVerificationSourceLabel } from "../utils/verificationUtils";
 
 export interface LineFile {
   file: string;
@@ -56,8 +57,8 @@ export function useKVVData() {
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
 
   const [lineFiles, setLineFiles] = useState<LineFile[]>([]);
-  /** Provenance of the selected year's verification checks (e.g. `bahn.expert`),
-   * for attribution in the UI. Null when the year publishes no summary. */
+  /** Provenance of the selected year's verification checks for UI attribution.
+   * Includes all sources in the scraper's multi-source summary. */
   const [verificationSource, setVerificationSource] = useState<string | null>(null);
   const [selectedFiles, setSelectedFilesRaw] = useState<string[]>([]);
 
@@ -135,7 +136,13 @@ export function useKVVData() {
 
         setLineFiles(files);
         setSelectedFilesRaw(defaultSelection);
-        setVerificationSource(yearIndex.verification?.source ?? null);
+        const verification = yearIndex.verification;
+        setVerificationSource(
+          formatVerificationSourceLabel(
+            verification?.source ?? null,
+            verification?.sources ?? []
+          )
+        );
       } catch (e) {
         if (!isAbortError(e)) {
           setError((e as Error).message);

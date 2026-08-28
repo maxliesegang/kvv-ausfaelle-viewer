@@ -1,4 +1,8 @@
-import type { VerificationStats, VerificationStatusDefinition } from "../types";
+import type {
+  Verification,
+  VerificationStats,
+  VerificationStatusDefinition,
+} from "../types";
 import { buildLabelMap } from "./taxonomy";
 
 /**
@@ -34,6 +38,12 @@ import { buildLabelMap } from "./taxonomy";
 export const UNCHECKED_STATUS_ID = "unchecked";
 
 const UNKNOWN_FALLBACK_LABEL = "Unbekannt";
+
+const GERMAN_AGREEMENT_LABELS: Readonly<Record<string, string>> = {
+  "single-source": "Einzelquelle",
+  corroborated: "Quellen stimmen überein",
+  conflicting: "Quellen widersprechen sich",
+};
 
 /** What the evidence says about the announcement. The filter, chart, table
  * column and summary tile are all expressed in these. */
@@ -151,6 +161,40 @@ export function buildVerificationCatalog(
  * source publishes no verification taxonomy at all. */
 export const EMPTY_VERIFICATION_CATALOG: VerificationCatalog = buildVerificationCatalog([]);
 
+/** Returns the distinct sources represented by a verification result. */
+export function getVerificationSourceNames(
+  verification: Verification | undefined
+): string[] {
+  const checkSources = Object.keys(verification?.checks ?? {}).filter((source) => source.trim());
+  const selectedSource = verification?.source?.trim();
+  const sources = [
+    ...checkSources,
+    ...(selectedSource && selectedSource !== "multiple" ? [selectedSource] : []),
+  ];
+  return [...new Set(sources)].sort((a, b) => a.localeCompare(b));
+}
+
+/** Formats year-index source metadata for German UI attribution. */
+export function formatVerificationSourceLabel(
+  source: string | null,
+  sources: readonly string[]
+): string | null {
+  const names = [...new Set(sources.map((value) => value.trim()).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b)
+  );
+  if (names.length > 0) return names.join(" und ");
+  if (!source) return null;
+  return source === "multiple" ? "mehreren Quellen" : source;
+}
+
+/** German label for the scraper's multi-source agreement marker. */
+export function resolveVerificationAgreementLabel(
+  agreement: string | undefined
+): string | null {
+  if (!agreement) return null;
+  return GERMAN_AGREEMENT_LABELS[agreement] ?? agreement;
+}
+
 /** Resolves a record's verdict into a stable status key. A missing verdict or a
  * blank status collapses to {@link UNCHECKED_STATUS_ID}; any non-empty status is
  * kept verbatim (trimmed) so an id absent from the catalog stays diagnosable. */
@@ -177,6 +221,25 @@ export function resolveVerificationDescription(
   id: string
 ): string {
   return catalog.descriptionById.get(id) ?? "";
+}
+
+/** Precise result per provider, for audit-friendly tooltips and CSV exports. */
+export function formatVerificationCheckDetails(
+  catalog: VerificationCatalog,
+  verification: Verification | undefined
+): string | null {
+  const checks = Object.entries(verification?.checks ?? {}).filter(
+    ([source, evidence]) => source.trim() && evidence && typeof evidence.status === "string"
+  );
+  if (checks.length === 0) return null;
+
+  return checks
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([source, evidence]) => {
+      const status = resolveVerificationStatus(evidence);
+      return `${source}: ${resolveVerificationLabel(catalog, status)}`;
+    })
+    .join("; ");
 }
 
 /** The group a resolved status belongs to. Unknown statuses are inconclusive. */

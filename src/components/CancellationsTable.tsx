@@ -14,7 +14,10 @@ import { resolveRawCauseLabel } from "../utils/causeUtils";
 import type { Catalogs } from "../utils/catalogs";
 import {
   getVerificationGroupLabel,
+  formatVerificationCheckDetails,
+  getVerificationSourceNames,
   resolveVerificationDescription,
+  resolveVerificationAgreementLabel,
   resolveVerificationGroup,
   resolveVerificationLabel,
   resolveVerificationStatus,
@@ -137,7 +140,17 @@ function packVerification(
   const group = resolveVerificationGroup(status);
   const statusLabel = resolveVerificationLabel(catalogs.verification, status);
   const statusDescription = resolveVerificationDescription(catalogs.verification, status);
-  const detail = statusDescription ? `${statusLabel} — ${statusDescription}` : statusLabel;
+  const sourceNames = getVerificationSourceNames(verification);
+  const agreementLabel = resolveVerificationAgreementLabel(verification?.agreement);
+  const checkDetails = formatVerificationCheckDetails(catalogs.verification, verification);
+  const detail = [
+    statusDescription ? `${statusLabel} — ${statusDescription}` : statusLabel,
+    sourceNames.length > 0 ? `Quellen: ${sourceNames.join(" und ")}` : null,
+    agreementLabel ? `Abgleich: ${agreementLabel}` : null,
+    checkDetails ? `Einzelergebnisse: ${checkDetails}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   return [group, getVerificationGroupLabel(group), detail].join(STATUS_SEP);
 }
 

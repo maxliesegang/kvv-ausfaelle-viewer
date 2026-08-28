@@ -35,6 +35,8 @@ export interface RootIndex {
  * loaded records so they always match the active filters. */
 export interface YearVerificationSummary {
   source?: string;
+  /** Sources that contributed evidence; present in the multi-source format. */
+  sources?: string[];
   checkedTrips?: number;
   totalTrips?: number;
   statusCounts?: Record<string, number>;
@@ -54,15 +56,26 @@ export type CauseFilter = string;
  * announced cancellation actually happened. Optional by contract: absent on
  * records the source never checked (the large majority) and on trips outside its
  * rolling lookback window. It never overrides the record's primary meaning —
- * that KVV announced a cancellation. Evidence counts beyond `status` are kept
- * out of the viewer's model; they are the scraper's audit trail. */
-export interface Verification {
+ * that KVV announced a cancellation. When multiple providers answer, their
+ * independent evidence is available in `checks` for audit display. */
+export interface VerificationEvidence {
   /** A `verificationStatuses` id. External runtime data, so an open string. */
   status: string;
   /** Provenance of the check, e.g. `bahn.expert`. */
   source?: string;
   /** ISO date the check ran. */
   checkedAt?: string;
+}
+
+/**
+ * The selected verification result plus optional evidence from other sources.
+ * The top-level fields remain the backwards-compatible selected verdict;
+ * `checks` preserves the independent provider results when more than one
+ * source answered.
+ */
+export interface Verification extends VerificationEvidence {
+  checks?: Record<string, VerificationEvidence>;
+  agreement?: string;
 }
 
 export interface Cancellation {

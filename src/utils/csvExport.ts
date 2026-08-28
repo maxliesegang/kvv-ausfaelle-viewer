@@ -2,8 +2,11 @@ import type { Cancellation } from "../types";
 import { resolveRawCauseLabel } from "./causeUtils";
 import type { Catalogs } from "./catalogs";
 import {
+  formatVerificationCheckDetails,
   getVerificationGroupLabel,
+  getVerificationSourceNames,
   resolveVerificationGroup,
+  resolveVerificationAgreementLabel,
   resolveVerificationLabel,
   resolveVerificationStatus,
 } from "./verificationUtils";
@@ -19,6 +22,9 @@ const CSV_HEADERS = [
   "Ursache",
   "Prüfung",
   "Prüfergebnis",
+  "Prüfquellen",
+  "Prüfungsabgleich",
+  "Prüfdetails",
   "Quelle",
 ];
 
@@ -26,6 +32,7 @@ function toCsvRow(cancellation: Cancellation, catalogs: Catalogs): string[] {
   // The export carries both vocabularies: the grouped verdict the UI shows, and
   // the precise published status behind it.
   const status = resolveVerificationStatus(cancellation.verification);
+  const sourceNames = getVerificationSourceNames(cancellation.verification);
   return [
     cancellation.date,
     cancellation.line,
@@ -37,6 +44,9 @@ function toCsvRow(cancellation: Cancellation, catalogs: Catalogs): string[] {
     resolveRawCauseLabel(catalogs.causes, cancellation.cause),
     getVerificationGroupLabel(resolveVerificationGroup(status)),
     resolveVerificationLabel(catalogs.verification, status),
+    sourceNames.join(" und "),
+    resolveVerificationAgreementLabel(cancellation.verification?.agreement) ?? "",
+    formatVerificationCheckDetails(catalogs.verification, cancellation.verification) ?? "",
     cancellation.sourceUrl,
   ];
 }

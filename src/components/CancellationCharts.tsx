@@ -33,7 +33,7 @@ interface CancellationChartsProps {
   dayOfWeekStats: DayOfWeekStats[];
   causeStats: CauseStats[];
   verificationStats: VerificationStats[];
-  /** Provenance of the realtime checks, e.g. `bahn.expert`; null when unknown.
+  /** Provenance of the realtime checks, e.g. `bahn.expert und transitous`; null when unknown.
    * Only attribution — the "Nach Prüfung" card is switched by whether
    * `verificationStats` has anything to show. */
   verificationSource: string | null;

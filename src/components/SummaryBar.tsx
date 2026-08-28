@@ -8,7 +8,7 @@ interface SummaryBarProps {
   dailyStats: DailyStats[];
   /** Checked/confirmed tallies of the current selection. */
   verification: VerificationSummary;
-  /** Provenance of the checks, e.g. `bahn.expert`; null when unknown. */
+  /** Provenance of the checks, e.g. `bahn.expert und transitous`; null when unknown. */
   verificationSource: string | null;
 }
 
